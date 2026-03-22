@@ -27,9 +27,17 @@ export default function SystemStatsCard() {
         throw new Error('Failed to fetch system stats');
       }
 
-      const data = await response.json();
-      setStats(data);
-      setLoading(false);
+      const text = await response.text();
+
+      try {
+        const data = JSON.parse(text);
+        setStats(data);
+        setLoading(false);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        console.error('Response text:', text);
+        throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load system stats');
       setLoading(false);
