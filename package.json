@@ -9,7 +9,8 @@
     "build:server": "tsc --project tsconfig.server.json",
     "lint": "eslint .",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "start:production": "node raspberry-pi/start-production.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
