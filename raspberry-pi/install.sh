@@ -101,7 +101,27 @@ WantedBy=multi-user.target
 EOF
 
 echo ""
-echo "Step 7: Creating systemd service for auto-updater..."
+echo "Step 7: Creating systemd service for heartbeat..."
+sudo tee /etc/systemd/system/${SERVICE_NAME}-heartbeat.service > /dev/null << EOF
+[Unit]
+Description=Dashboard Heartbeat Service
+After=network.target ${SERVICE_NAME}.service
+
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=$INSTALL_DIR
+ExecStart=/usr/bin/node $INSTALL_DIR/raspberry-pi/heartbeat.js
+Restart=always
+RestartSec=10
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+echo ""
+echo "Step 8: Creating systemd service for auto-updater..."
 sudo tee /etc/systemd/system/${SERVICE_NAME}-updater.service > /dev/null << EOF
 [Unit]
 Description=Dashboard Auto-Updater
@@ -130,8 +150,10 @@ echo ""
 echo "Step 9: Enabling and starting services..."
 sudo systemctl daemon-reload
 sudo systemctl enable ${SERVICE_NAME}
+sudo systemctl enable ${SERVICE_NAME}-heartbeat
 sudo systemctl enable ${SERVICE_NAME}-updater
 sudo systemctl start ${SERVICE_NAME}
+sudo systemctl start ${SERVICE_NAME}-heartbeat
 sudo systemctl start ${SERVICE_NAME}-updater
 
 echo ""
@@ -141,6 +163,7 @@ echo "=========================================="
 echo ""
 echo "Dashboard is now running and will:"
 echo "  - Start automatically on boot"
+echo "  - Send status updates to Supabase every 10 seconds"
 echo "  - Check for Git updates every 5 minutes"
 echo "  - Auto-deploy when changes are detected"
 echo ""
@@ -149,9 +172,11 @@ echo "  http://$(hostname -I | awk '{print $1}'):3000"
 echo "  http://raspberrypi.local:3000"
 echo ""
 echo "Useful commands:"
-echo "  sudo systemctl status dashboard          - Check dashboard status"
-echo "  sudo systemctl restart dashboard         - Restart dashboard"
-echo "  sudo systemctl status dashboard-updater  - Check updater status"
-echo "  sudo journalctl -u dashboard -f          - View dashboard logs"
-echo "  sudo journalctl -u dashboard-updater -f  - View updater logs"
+echo "  sudo systemctl status dashboard             - Check dashboard status"
+echo "  sudo systemctl restart dashboard            - Restart dashboard"
+echo "  sudo systemctl status dashboard-heartbeat   - Check heartbeat status"
+echo "  sudo systemctl status dashboard-updater     - Check updater status"
+echo "  sudo journalctl -u dashboard -f             - View dashboard logs"
+echo "  sudo journalctl -u dashboard-heartbeat -f   - View heartbeat logs"
+echo "  sudo journalctl -u dashboard-updater -f     - View updater logs"
 echo ""
