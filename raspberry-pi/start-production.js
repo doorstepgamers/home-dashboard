@@ -2,6 +2,7 @@ import { createServer } from 'http';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { networkInterfaces } from 'os';
 import express from 'express';
 import serverApp from '../dist-server/index.js';
 
@@ -30,8 +31,7 @@ server.listen(PORT, '0.0.0.0', () => {
 });
 
 function getLocalIP() {
-  const os = require('os');
-  const nets = os.networkInterfaces();
+  const nets = networkInterfaces();
   for (const name of Object.keys(nets)) {
     for (const net of nets[name]) {
       if (net.family === 'IPv4' && !net.internal) {
