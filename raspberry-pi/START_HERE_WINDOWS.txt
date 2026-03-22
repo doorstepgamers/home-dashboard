@@ -1,0 +1,337 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║         🪟 VICTRON SOLAR MONITOR - WINDOWS SETUP 🌞                      ║
+║                                                                          ║
+║                        THE EASIEST WAY!                                  ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ IF YOU'RE ON WINDOWS - START HERE!                                      │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  This installer does EVERYTHING for you from Windows:
+
+  ✓ Prepares your SD card
+  ✓ Configures WiFi
+  ✓ Installs all software
+  ✓ Sets up database connection
+
+  You just insert the SD card into your Pi and power on!
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ WHAT YOU NEED                                                            │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  ☐ Windows 10 or 11 computer
+  ☐ SD card reader (built-in or USB)
+  ☐ MicroSD card (8GB or larger)
+  ☐ Your WiFi name and password
+  ☐ Your Supabase URL and key (from dashboard setup)
+  ☐ 45 minutes
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ SUPER SIMPLE STEPS                                                       │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  1. RIGHT-CLICK "install.bat" in this folder
+
+  2. Click "Run as Administrator"
+
+  3. Follow the graphical wizard
+     • It will guide you through everything
+     • Enter your WiFi name and password
+     • Enter your dashboard settings
+     • Select your SD card
+     • Click buttons to proceed
+
+  4. When done, safely eject SD card from Windows
+
+  5. Insert SD card into Raspberry Pi
+
+  6. Connect VE.Direct USB cable to Pi
+
+  7. Connect power to Pi
+
+  8. Wait 3 minutes
+
+  9. Check your dashboard - it's working!
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ THAT'S LITERALLY IT!                                                     │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  No SSH, no terminal commands, no Linux knowledge needed.
+
+  Just double-click, fill in some boxes, and you're done!
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ DETAILED STEPS                                                           │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  STEP 1: START THE INSTALLER
+
+    • Find "install.bat" in this folder
+    • RIGHT-CLICK it
+    • Select "Run as Administrator"
+    • A window will open
+
+
+  STEP 2: FOLLOW THE WIZARD
+
+    The wizard has 7 screens:
+
+    Screen 1: Welcome
+      → Read the overview
+      → Click "Next"
+
+    Screen 2: Requirements Check
+      → Wizard checks your system
+      → Click "Next"
+
+    Screen 3: Download Raspberry Pi Imager
+      → Click "Download" button
+      → Install Raspberry Pi Imager
+      → Come back and click "I've installed it"
+      → Click "Next"
+
+    Screen 4: Insert SD Card
+      → Insert your SD card into computer
+      → Wizard will detect it
+      → Select the correct drive
+      → Click "Next"
+
+    Screen 5: Enter Your Settings
+      → WiFi Network Name: [Your WiFi name]
+      → WiFi Password: [Your WiFi password]
+      → Pi Password: [Choose a password]
+      → Supabase URL: [From your dashboard]
+      → Supabase Key: [From your dashboard]
+      → Click "Next"
+
+    Screen 6: Write SD Card
+      → Review your settings
+      → Click "Start Writing"
+      → Raspberry Pi Imager will open
+      → In Imager:
+        - Choose OS → Raspberry Pi OS (64-bit)
+        - Choose Storage → Your SD card
+        - Click ⚙️ (gear icon)
+        - Enable SSH
+        - Set username: pi
+        - Set password: [same as you entered]
+        - Configure WiFi: [same as you entered]
+        - Click Save
+        - Click Write
+        - Wait for it to finish
+      → Come back to wizard
+      → Click "Next"
+
+    Screen 7: Complete!
+      → Read the final instructions
+      → Click "Finish"
+
+
+  STEP 3: USE THE SD CARD
+
+    • Safely eject SD card from Windows
+    • Insert it into your Raspberry Pi
+    • Connect VE.Direct USB cable
+    • Connect power
+    • Wait 2-3 minutes for first boot
+    • Check your dashboard!
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ WHAT HAPPENS AUTOMATICALLY                                               │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  When you power on your Raspberry Pi:
+
+  1. Pi boots up (30 seconds)
+  2. Connects to your WiFi (10 seconds)
+  3. Installs Python libraries (60 seconds)
+  4. Sets up data collector (30 seconds)
+  5. Starts collecting data (immediately!)
+  6. Sends to your dashboard (every 5 seconds)
+
+  Total time: About 2-3 minutes
+
+  You don't do anything - it's all automatic!
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ TROUBLESHOOTING                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  Problem: Installer won't start
+
+    Solution 1: Install Python
+      → Go to https://www.python.org/downloads/
+      → Download and install Python
+      → Check "Add Python to PATH"
+      → Try again
+
+    Solution 2: Run as Administrator
+      → RIGHT-CLICK install.bat
+      → Select "Run as Administrator"
+      → If prompted, click "Yes"
+
+
+  Problem: Can't find SD card
+
+    → Make sure SD card is inserted
+    → Try a different USB port
+    → Try a different SD card reader
+    → Click "Refresh Drives" button
+
+
+  Problem: Raspberry Pi won't connect to WiFi
+
+    → Check WiFi name is correct (case sensitive!)
+    → Check WiFi password is correct
+    → Make sure you're using 2.4GHz WiFi (not 5GHz)
+    → Pi must be within WiFi range
+    → Try connecting Pi with ethernet cable instead
+
+
+  Problem: No data on dashboard
+
+    → Wait 5 minutes after first boot
+    → Check VE.Direct cable is connected
+    → Make sure Victron device is powered on
+    → Check Supabase URL and key are correct
+    → Try restarting Pi
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ GETTING YOUR SUPABASE CREDENTIALS                                        │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  You need these from your Supabase dashboard:
+
+  1. Go to your Supabase project
+  2. Click "Settings" (gear icon)
+  3. Click "API"
+  4. Copy:
+     • Project URL (starts with https://)
+     • anon/public key (starts with eyJ)
+
+  Paste these into the installer when asked!
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ AFTER SETUP - USEFUL INFO                                                │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  Your Pi is now running!
+
+  • It starts automatically when powered on
+  • It reconnects if WiFi drops
+  • It collects data every 5 seconds
+  • It logs history every minute
+  • It runs forever with no maintenance
+
+  You can:
+  • Unplug and move it
+  • Restart it anytime
+  • Power it off safely
+  • Leave it running 24/7
+
+  To check status (optional):
+    ssh pi@raspberrypi.local
+    sudo systemctl status victron-collector.service
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ WHY THIS IS BETTER THAN OTHER METHODS                                    │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  ✓ No SSH needed
+  ✓ No terminal commands
+  ✓ No Linux knowledge required
+  ✓ Everything configured automatically
+  ✓ WiFi set up before first boot
+  ✓ Software installed automatically
+  ✓ Just insert SD card and go
+  ✓ Works right away
+  ✓ Fully graphical
+  ✓ Validates everything
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ ALTERNATIVE METHODS (If Windows installer doesn't work)                  │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  Method 1: Manual with Raspberry Pi Imager
+    → See: EASY_START.txt
+    → Time: 35 minutes
+    → Difficulty: Easy
+
+  Method 2: Graphical wizard on Raspberry Pi
+    → See: GUI_SETUP.md
+    → Time: 15 minutes (after Pi boots)
+    → Difficulty: Easy
+
+  Method 3: Automated command line
+    → See: QUICK_START.md
+    → Time: 30 minutes
+    → Difficulty: Medium
+
+  Method 4: Complete manual setup
+    → See: SETUP_GUIDE.md
+    → Time: 1-2 hours
+    → Difficulty: Hard
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ FILES IN THIS FOLDER                                                     │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  install.bat               ← DOUBLE-CLICK THIS TO START!
+  windows_installer.py      ← The actual installer program
+  WINDOWS_SETUP.md          ← Detailed Windows instructions
+
+  Other files:
+  • GUI_SETUP.md            - Wizard for Raspberry Pi
+  • QUICK_START.md          - Automated command line
+  • SETUP_GUIDE.md          - Complete manual
+  • EASY_START.txt          - Simple visual guide
+  • WIRING_GUIDE.md         - Hardware connections
+  • victron_collector.py    - Data collection script
+  • requirements.txt        - Python dependencies
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ NEED MORE HELP?                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  Read WINDOWS_SETUP.md for complete details
+
+  It has:
+  • Screenshots
+  • Detailed troubleshooting
+  • FAQ
+  • Security notes
+  • Advanced options
+
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║  Ready to start?                                                        ║
+║                                                                          ║
+║  1. RIGHT-CLICK "install.bat"                                           ║
+║  2. Click "Run as Administrator"                                        ║
+║  3. Follow the screens                                                  ║
+║  4. Insert SD card into Pi                                              ║
+║  5. Power on                                                            ║
+║  6. Done!                                                               ║
+║                                                                          ║
+║  It's that simple!                                                      ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝

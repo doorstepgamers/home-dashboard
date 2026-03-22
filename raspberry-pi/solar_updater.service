@@ -1,0 +1,20 @@
+[Unit]
+Description=Solar System Auto-Updater
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/solar_monitor
+ExecStart=/usr/bin/python3 /home/pi/solar_monitor/auto_updater.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+Environment="SUPABASE_URL=https://0ec90b57d6e95fcbda19832f.supabase.co"
+Environment="SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJib2x0IiwicmVmIjoiMGVjOTBiNTdkNmU5NWZjYmRhMTk4MzJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4ODE1NzQsImV4cCI6MTc1ODg4MTU3NH0.9I8-U0x86Ak8t2DGaIk0HfvTSLsAyzdnz-Nw00mMkKw"
+
+[Install]
+WantedBy=multi-user.target

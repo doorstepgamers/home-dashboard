@@ -1,0 +1,223 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║                    VICTRON SOLAR MONITOR                                 ║
+║                      Quick Reference Card                                ║
+║                                                                          ║
+║                  Print this and keep in your van!                        ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ SYSTEM INFO                                                              │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Dashboard URL: _________________________________________________
+
+Raspberry Pi IP: _______________________________________________
+
+SSH Login: ssh pi@_____________________________________________
+
+SSH Password: __________________________________________________
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ COMMON COMMANDS                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Connect to Pi:
+  ssh pi@victron-monitor.local
+  (or use IP address from above)
+
+Check if service is running:
+  sudo systemctl status victron-collector.service
+
+View live data:
+  sudo journalctl -u victron-collector.service -f
+  (Press Ctrl+C to stop viewing)
+
+Restart the service:
+  sudo systemctl restart victron-collector.service
+
+Stop the service:
+  sudo systemctl stop victron-collector.service
+
+Start the service:
+  sudo systemctl start victron-collector.service
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ TROUBLESHOOTING                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+No data showing in dashboard:
+  1. Check service: sudo systemctl status victron-collector.service
+  2. View logs: sudo journalctl -u victron-collector.service -n 50
+  3. Check USB: ls -l /dev/ttyUSB*
+  4. Restart: sudo systemctl restart victron-collector.service
+
+Can't connect via SSH:
+  1. Check Pi has power (green LED should be on)
+  2. Check network connection (WiFi or Ethernet)
+  3. Find IP from router admin page
+  4. Try: ping victron-monitor.local
+
+Service won't start:
+  1. Test manually: cd ~/victron-solar && python3 victron_collector.py
+  2. Check for errors in output
+  3. Verify USB cable is connected
+  4. Reboot Pi: sudo reboot
+
+Dashboard shows old data:
+  1. Check Pi is powered on
+  2. Check internet connection: ping google.com
+  3. Restart service: sudo systemctl restart victron-collector.service
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ FILE LOCATIONS                                                           │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Installation directory:
+  /home/pi/victron-solar/
+
+Main collector script:
+  /home/pi/victron-solar/victron_collector.py
+
+Service configuration:
+  /etc/systemd/system/victron-collector.service
+
+View configuration:
+  nano ~/victron-solar/victron_collector.py
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ CONFIGURATION SETTINGS                                                   │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Serial Port: ___________________________________________________
+  (Usually /dev/ttyUSB0)
+
+Data Update Interval: __________________________________________
+  (Default: 5 seconds)
+
+History Log Interval: __________________________________________
+  (Default: 60 seconds)
+
+To change settings:
+  nano ~/victron-solar/victron_collector.py
+  (Then restart service)
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ MAINTENANCE SCHEDULE                                                     │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Weekly:
+  [ ] Check dashboard shows recent data
+  [ ] Verify service is running
+  [ ] Check Pi power LED is on
+
+Monthly:
+  [ ] Clean dust from Pi case
+  [ ] Check cable connections are secure
+  [ ] Verify USB cable isn't damaged
+  [ ] Update system: sudo apt-get update && sudo apt-get upgrade
+
+Seasonal:
+  [ ] Deep clean of Pi and enclosure
+  [ ] Inspect all cables for wear
+  [ ] Check mounting is secure
+  [ ] Backup configuration
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ HARDWARE CONNECTIONS                                                     │
+└──────────────────────────────────────────────────────────────────────────┘
+
+VE.Direct Device: ______________________________________________
+
+USB Port Used: _________________________________________________
+
+Power Source: __________________________________________________
+
+Network Connection: ☐ WiFi  ☐ Ethernet
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ EMERGENCY PROCEDURES                                                     │
+└──────────────────────────────────────────────────────────────────────────┘
+
+System completely unresponsive:
+  1. Unplug power from Pi
+  2. Wait 10 seconds
+  3. Plug power back in
+  4. Wait 2 minutes for boot
+  5. Check if service auto-starts
+
+Lost SSH password:
+  1. Power off Pi
+  2. Remove SD card
+  3. Insert into computer
+  4. Create file: boot/ssh (empty file)
+  5. Edit boot/userconf.txt with new password hash
+  6. Re-insert card and boot Pi
+
+SD card corrupted:
+  1. Reflash new SD card with Raspberry Pi OS
+  2. Run setup script again
+  3. Configuration will be restored from Supabase
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ SUPPORT RESOURCES                                                        │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Victron VE.Direct Protocol:
+  https://www.victronenergy.com/support-and-downloads
+
+Raspberry Pi Forums:
+  https://forums.raspberrypi.com/
+
+Victron Community:
+  https://community.victronenergy.com/
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ NOTES                                                                    │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Installation Date: _____________________________________________
+
+Installer Name: ________________________________________________
+
+Additional Notes:
+
+________________________________________________________________________
+
+________________________________________________________________________
+
+________________________________________________________________________
+
+________________________________________________________________________
+
+________________________________________________________________________
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ VERSION INFORMATION                                                      │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Software Version: 1.0
+
+Last Updated: __________________________________________________
+
+Raspberry Pi Model: ____________________________________________
+
+SD Card Size: __________________________________________________
+
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║  Keep this card with your vehicle documentation for quick reference     ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝

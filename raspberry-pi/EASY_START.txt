@@ -1,0 +1,195 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║              🌞 VICTRON SOLAR MONITOR - EASY SETUP 🔋                    ║
+║                                                                          ║
+║                    The Simplest Way to Get Started                       ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ WHAT YOU NEED                                                            │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  ☐ Raspberry Pi 3 or newer
+  ☐ MicroSD card (8GB+)
+  ☐ VE.Direct to USB cable
+  ☐ Your Victron solar equipment
+  ☐ Computer to prepare SD card
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ STEP 1: PREPARE SD CARD (10 minutes)                                    │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  1. Download Raspberry Pi Imager
+     → https://www.raspberrypi.com/software/
+
+  2. Flash SD card:
+     • Choose: Raspberry Pi OS (64-bit)
+     • Click ⚙️ gear icon
+     • ✓ Enable SSH
+     • ✓ Set WiFi name and password
+     • ✓ Set username: pi and your password
+     • Click Write
+
+  3. When done, eject SD card
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ STEP 2: BOOT RASPBERRY PI (5 minutes)                                   │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  1. Insert SD card into Raspberry Pi
+  2. Connect VE.Direct USB cable
+  3. Connect power
+  4. Wait 2 minutes for first boot
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ STEP 3: COPY FILES (5 minutes)                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  On your computer, open terminal/command prompt:
+
+  scp -r raspberry-pi pi@raspberrypi.local:~/
+
+  (Enter your Pi password when asked)
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ STEP 4: RUN SETUP WIZARD (15 minutes)                                   │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  Connect to your Pi:
+
+  ssh pi@raspberrypi.local
+
+  Then run the wizard:
+
+  cd ~/raspberry-pi
+  python3 setup_wizard.py
+
+
+  The wizard will:
+  ✓ Show you a graphical interface
+  ✓ Detect your hardware automatically
+  ✓ Install everything needed
+  ✓ Test the connection
+  ✓ Start data collection
+
+  Just click the buttons and follow along!
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ THAT'S IT! YOU'RE DONE!                                                  │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  Your dashboard is now receiving live data!
+
+  Open your web browser and check your dashboard.
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ TROUBLESHOOTING                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  Can't connect?
+  → Try: ssh pi@192.168.1.XXX (use your Pi's IP from router)
+
+  Wizard won't start?
+  → Run: sudo apt-get install python3-tk
+  → Then try wizard again
+
+  No USB device found?
+  → Check cable is plugged in
+  → Make sure Victron device is powered on
+  → Try different USB port
+
+  Still stuck?
+  → See GUI_SETUP.md for detailed help
+  → Or try automated script: ./setup.sh
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ ALTERNATIVE: NO WIZARD METHOD                                            │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  If the wizard doesn't work, use the automated script:
+
+  ssh pi@raspberrypi.local
+  cd ~/raspberry-pi
+  chmod +x setup.sh
+  ./setup.sh
+  sudo reboot
+
+  After reboot:
+  sudo systemctl enable victron-collector.service
+  sudo systemctl start victron-collector.service
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ WHAT HAPPENS AFTER SETUP                                                 │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  Your Raspberry Pi will:
+  • Start automatically when powered on
+  • Collect data every 5 seconds
+  • Send to your dashboard
+  • Reconnect if internet drops
+  • Run forever with no maintenance
+
+  Just leave it plugged in and forget about it!
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ VIEWING YOUR DASHBOARD                                                   │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  Your dashboard works from:
+  ✓ Desktop computer
+  ✓ Laptop
+  ✓ Phone
+  ✓ Tablet
+  ✓ Any device with internet
+
+  Just bookmark the URL!
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ USEFUL COMMANDS (Optional)                                               │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  See live data:
+  sudo journalctl -u victron-collector.service -f
+
+  Check if running:
+  sudo systemctl status victron-collector.service
+
+  Restart service:
+  sudo systemctl restart victron-collector.service
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ NEED MORE HELP?                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  Read the guides:
+  • GUI_SETUP.md - Wizard instructions
+  • QUICK_START.md - Fast command-line setup
+  • SETUP_GUIDE.md - Complete manual
+  • WIRING_GUIDE.md - Hardware connections
+
+  Print for reference:
+  • PRINTABLE_REFERENCE.txt - Keep in your van
+
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║  Total setup time: About 35 minutes                                     ║
+║  Technical skill needed: None!                                          ║
+║                                                                          ║
+║  The wizard does all the hard work for you.                             ║
+║  Just click through the steps and you're done!                          ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝
