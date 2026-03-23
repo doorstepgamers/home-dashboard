@@ -65,19 +65,58 @@ export default function VictronDeviceManager() {
     try {
       setDiscovering(true);
       setError(null);
+
       const response = await fetch('/api/victron-devices/discover/scan', {
         method: 'POST'
       });
 
       if (!response.ok) throw new Error('Discovery failed');
 
-      const data = await response.json();
-      setDiscoveredDevices(data);
-      setSuccess(`Found ${data.length} device(s)`);
+      const result = await response.json();
+      const { devices = [], scanning = false } = result;
+
+      setDiscoveredDevices(devices);
+      setSuccess(`Found ${devices.length} device(s)${scanning ? ' (scanning in progress...)' : ''}`);
+
+      if (scanning) {
+        let pollCount = 0;
+        const pollInterval = setInterval(async () => {
+          pollCount++;
+          if (pollCount > 15) {
+            clearInterval(pollInterval);
+            setDiscovering(false);
+            return;
+          }
+
+          try {
+            const pollResponse = await fetch('/api/victron-devices/discover/scan', {
+              method: 'POST'
+            });
+
+            if (pollResponse.ok) {
+              const pollResult = await pollResponse.json();
+              const { devices: updatedDevices = [], scanning: stillScanning = false } = pollResult;
+
+              setDiscoveredDevices(updatedDevices);
+              if (updatedDevices.length > 0) {
+                setSuccess(`Found ${updatedDevices.length} device(s)`);
+              }
+
+              if (!stillScanning) {
+                clearInterval(pollInterval);
+                setDiscovering(false);
+              }
+            }
+          } catch (pollErr) {
+            console.error('Error polling discovery results:', pollErr);
+          }
+        }, 1000);
+      } else {
+        setDiscovering(false);
+      }
     } catch (err) {
       console.error('Error discovering devices:', err);
       setError('Failed to discover devices');
-    } finally {
       setDiscovering(false);
     }
   };

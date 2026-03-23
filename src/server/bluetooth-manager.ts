@@ -209,17 +209,58 @@ export class BluetoothManager {
         const nobleInstance = noble.default || noble;
 
         await new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            nobleInstance.stopScanning();
-            resolve();
-          }, 15000);
+          let isReady = false;
+          let timeoutHandle: NodeJS.Timeout | null = null;
+
+          const cleanup = () => {
+            if (timeoutHandle) clearTimeout(timeoutHandle);
+            nobleInstance.removeAllListeners('discover');
+            nobleInstance.removeAllListeners('stateChange');
+          };
+
+          const startScan = () => {
+            console.log('Bluetooth is powered on, starting scan...');
+            isReady = true;
+
+            timeoutHandle = setTimeout(() => {
+              console.log('Scan timeout reached, stopping scan');
+              try {
+                nobleInstance.stopScanning();
+              } catch (e) {
+                console.warn('Error stopping scan:', e);
+              }
+              cleanup();
+              resolve();
+            }, 15000);
+
+            nobleInstance.startScanning([], true, (err: any) => {
+              if (err) {
+                console.error('Error starting scan:', err);
+                cleanup();
+                reject(err);
+              }
+            });
+          };
+
+          nobleInstance.on('stateChange', (state: string) => {
+            console.log('Bluetooth state changed:', state);
+            if (state === 'poweredOn' && !isReady) {
+              startScan();
+            } else if (state !== 'poweredOn') {
+              console.warn('Bluetooth not in powered on state:', state);
+            }
+          });
 
           nobleInstance.on('discover', (peripheral: any) => {
-            const name = peripheral.advertisement?.localName || peripheral.advertisement?.completeLocalName || 'Unknown';
+            const name = peripheral.advertisement?.localName || peripheral.advertisement?.completeLocalName || peripheral.name || 'Unknown';
             const rssi = peripheral.rssi || -100;
 
-            if (name && (name.includes('Victron') || name.includes('MPPT') || name.includes('Shunt'))) {
-              const deviceType = name.includes('Shunt') ? 'shunt' : 'mppt';
+            console.log(`Found device: ${name} (${peripheral.address}) - RSSI: ${rssi}dBm`);
+
+            const isVictronDevice = name && (name.includes('Victron') || name.includes('MPPT') || name.includes('Shunt') || name.includes('Batt'));
+
+            if (isVictronDevice) {
+              const deviceType = name.includes('Shunt') || name.includes('Batt') ? 'shunt' : 'mppt';
               const signalStrength = Math.max(-100, Math.min(-30, rssi));
 
               const device: DiscoveredDevice = {
@@ -231,17 +272,25 @@ export class BluetoothManager {
 
               if (!discoveredDevices.find(d => d.mac_address === peripheral.address)) {
                 discoveredDevices.push(device);
-                console.log(`Discovered: ${name} (${peripheral.address}) - Signal: ${rssi}dBm`);
+                console.log(`Added to discovered list: ${name} (${peripheral.address})`);
               }
             }
           });
 
-          nobleInstance.startScanning([], true, (err: any) => {
-            if (err) {
-              clearTimeout(timeout);
-              reject(err);
-            }
-          });
+          const getState = () => (nobleInstance as any)._state || (nobleInstance as any).state || 'unknown';
+
+          if (getState() === 'poweredOn') {
+            startScan();
+          } else {
+            console.log('Waiting for Bluetooth to power on. Current state:', getState());
+            timeoutHandle = setTimeout(() => {
+              if (!isReady) {
+                console.error('Bluetooth did not reach poweredOn state within timeout');
+                cleanup();
+                resolve();
+              }
+            }, 5000);
+          }
         });
       } catch (error) {
         console.warn('Noble not available or Bluetooth error:', error instanceof Error ? error.message : String(error));

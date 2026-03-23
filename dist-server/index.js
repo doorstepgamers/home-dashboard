@@ -14,6 +14,7 @@ import { createClient } from '@supabase/supabase-js';
 import { BluetoothManager } from './bluetooth-manager.js';
 import { BluetoothSpeakerManager } from './speaker-manager.js';
 import { LastFmService } from './lastfm-service.js';
+import { initializeVictronReader, readVictronData } from './victron-reader.js';
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -32,6 +33,8 @@ let bluetoothManager = null;
 let speakerManager = null;
 let lastFmService = null;
 let lastFmSyncInterval = null;
+let victronReaderInitialized = false;
+let victronPollInterval = null;
 if (supabaseUrl && supabaseKey) {
     supabase = createClient(supabaseUrl, supabaseKey);
     bluetoothManager = new BluetoothManager(supabase);
@@ -301,17 +304,26 @@ app.delete('/api/victron-devices/:id', async (req, res) => {
         res.status(500).json({ error: 'Failed to remove device' });
     }
 });
+let lastDiscoveredDevices = [];
+let isDiscoveryInProgress = false;
 app.post('/api/victron-devices/discover/scan', async (req, res) => {
     if (!bluetoothManager) {
-        return res.status(500).json({ error: 'Bluetooth manager not initialized' });
+        return res.status(500).json({ error: 'Bluetooth manager not initialized', devices: [] });
     }
-    try {
-        const devices = await bluetoothManager.discoverDevices();
-        res.json(devices);
-    }
-    catch (error) {
-        console.error('Error discovering devices:', error);
-        res.status(500).json({ error: 'Failed to discover devices' });
+    res.json({ devices: lastDiscoveredDevices, scanning: isDiscoveryInProgress });
+    if (!isDiscoveryInProgress) {
+        isDiscoveryInProgress = true;
+        try {
+            const devices = await bluetoothManager.discoverDevices();
+            lastDiscoveredDevices = devices;
+        }
+        catch (error) {
+            console.error('Error discovering devices:', error);
+            lastDiscoveredDevices = [];
+        }
+        finally {
+            isDiscoveryInProgress = false;
+        }
     }
 });
 app.post('/api/victron-devices/:id/test-connection', async (req, res) => {
@@ -690,6 +702,58 @@ app.get('*', (req, res) => {
 });
 const server = createServer(app);
 server.setOption?.('SO_REUSEADDR', 1);
+async function initializeVictronSync() {
+    try {
+        console.log('Initializing Victron reader...');
+        await initializeVictronReader();
+        victronReaderInitialized = true;
+        console.log('Victron reader initialized successfully');
+        const pollInterval = parseInt(process.env.VICTRON_POLL_INTERVAL || '30') * 1000;
+        if (victronPollInterval)
+            clearInterval(victronPollInterval);
+        victronPollInterval = setInterval(async () => {
+            try {
+                const data = await readVictronData();
+                if (data && supabase) {
+                    const { data: devices } = await supabase
+                        .from('victron_devices')
+                        .select('id')
+                        .eq('is_active', true)
+                        .maybeSingle();
+                    const deviceId = devices?.id || 'default-shunt';
+                    await supabase
+                        .from('victron_data')
+                        .insert({
+                        device_id: deviceId,
+                        device_type: data.device_type,
+                        pv_voltage: data.pv_voltage ?? null,
+                        pv_current: data.pv_current ?? null,
+                        pv_power: data.pv_power ?? null,
+                        battery_voltage: data.battery_voltage ?? null,
+                        battery_current: data.battery_current ?? null,
+                        battery_power: data.battery_power ?? null,
+                        load_current: data.load_current ?? null,
+                        yield_today: data.yield_today ?? null,
+                        yield_total: data.yield_total ?? null,
+                        efficiency: data.efficiency ?? null,
+                        temperature: data.temperature ?? null,
+                        state_of_operation: data.state_of_operation ?? null,
+                        error_code: data.error_code ?? null,
+                        raw_data: data.raw_data,
+                    });
+                }
+            }
+            catch (error) {
+                console.error('Victron data sync error:', error);
+            }
+        }, pollInterval);
+        console.log('Victron sync polling started');
+    }
+    catch (error) {
+        console.warn('Victron reader initialization failed (this is normal if serial port is not available):', error instanceof Error ? error.message : String(error));
+        victronReaderInitialized = false;
+    }
+}
 async function initializeLastFmSync() {
     if (!lastFmService || !supabase)
         return;
@@ -741,6 +805,7 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`Local:   http://localhost:${PORT}`);
     console.log(`Network: http://${getLocalIP()}:${PORT}`);
     console.log(`========================================`);
+    initializeVictronSync();
     initializeLastFmSync();
 });
 server.on('error', (err) => {
