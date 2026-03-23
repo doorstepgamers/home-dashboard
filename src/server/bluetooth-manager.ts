@@ -205,7 +205,7 @@ export class BluetoothManager {
       console.log('Starting Bluetooth device discovery...');
 
       try {
-        const noble = await import('@abandonware/noble');
+        const noble = await import('@abandonware/noble' as string);
         const nobleInstance = noble.default || noble;
 
         await new Promise<void>((resolve, reject) => {

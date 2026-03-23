@@ -3,6 +3,8 @@ import { Settings, Save, X, Download, RotateCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import VictronDeviceManager from './VictronDeviceManager';
 import LastFmSettings from './LastFmSettings';
+import ServiceStatusMonitor from './ServiceStatusMonitor';
+import VictronSettingsPanel from './VictronSettingsPanel';
 
 interface Setting {
   id: string;
@@ -212,7 +214,9 @@ export function AdminDashboard() {
           </div>
         ) : (
           <div className="space-y-6">
+            <ServiceStatusMonitor />
             <VictronDeviceManager />
+            <VictronSettingsPanel />
             <LastFmSettings />
 
             {Object.entries(groupedSettings).map(([category, categorySettings]) => (
