@@ -843,9 +843,41 @@ async function initializeVictronSync() {
               error_code: data.error_code ?? null,
               raw_data: data.raw_data,
             });
+
+          await supabase
+            .from('victron_devices')
+            .update({
+              connection_status: 'connected',
+              last_sync: new Date().toISOString(),
+              sync_errors_count: 0,
+              last_error: null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', deviceId);
         }
       } catch (error) {
         console.error('Victron data sync error:', error);
+        if (supabase) {
+          const { data: devices } = await supabase
+            .from('victron_devices')
+            .select('id, sync_errors_count')
+            .eq('is_active', true)
+            .maybeSingle();
+
+          const deviceId = devices?.id;
+          if (deviceId) {
+            const errorCount = (devices?.sync_errors_count || 0) + 1;
+            await supabase
+              .from('victron_devices')
+              .update({
+                connection_status: 'error',
+                last_error: error instanceof Error ? error.message : String(error),
+                sync_errors_count: errorCount,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', deviceId);
+          }
+        }
       }
     }, pollInterval);
 
