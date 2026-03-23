@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Settings, Save, X, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import VictronDeviceManager from './VictronDeviceManager';
+import LastFmSettings from './LastFmSettings';
 
 interface Setting {
   id: string;
@@ -162,6 +163,7 @@ export function AdminDashboard() {
         ) : (
           <div className="space-y-6">
             <VictronDeviceManager />
+            <LastFmSettings />
 
             {Object.entries(groupedSettings).map(([category, categorySettings]) => (
               <div key={category} className="glass-card">

@@ -4,6 +4,9 @@ import WeatherCard from './components/WeatherCard';
 import SystemStatsCard from './components/SystemStatsCard';
 import DeviceStatusCard from './components/DeviceStatusCard';
 import VictronDataCard from './components/VictronDataCard';
+import MusicPlayerCard from './components/MusicPlayerCard';
+import LastFmNowPlayingCard from './components/LastFmNowPlayingCard';
+import SpeakerStatusCard from './components/SpeakerStatusCard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { supabase } from './lib/supabase';
 
@@ -113,6 +116,9 @@ function App() {
           <WeatherCard />
           <SystemStatsCard />
           <VictronDataCard />
+          <LastFmNowPlayingCard />
+          <MusicPlayerCard />
+          <SpeakerStatusCard />
         </div>
       </main>
 

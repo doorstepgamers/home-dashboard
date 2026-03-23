@@ -71,7 +71,7 @@ export default function DeviceStatusCard() {
   const isOnline = (lastSeen: string) => {
     const lastSeenTime = new Date(lastSeen).getTime();
     const now = new Date().getTime();
-    return now - lastSeenTime < 30000;
+    return now - lastSeenTime < 300000;
   };
 
   const formatUptime = (seconds?: number) => {

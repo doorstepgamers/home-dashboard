@@ -12,6 +12,8 @@ import dotenv from 'dotenv';
 import { getSystemStats } from './system-stats.js';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { BluetoothManager } from './bluetooth-manager.js';
+import { BluetoothSpeakerManager } from './speaker-manager.js';
+import { LastFmService } from './lastfm-service.js';
 import type { VictronData } from './victron-reader.js';
 
 dotenv.config();
@@ -28,12 +30,21 @@ let isUpdating = false;
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const lastFmApiKey = process.env.LASTFM_API_KEY || '';
+const lastFmApiSecret = process.env.LASTFM_API_SECRET || '';
 let supabase: SupabaseClient | null = null;
 let bluetoothManager: BluetoothManager | null = null;
+let speakerManager: BluetoothSpeakerManager | null = null;
+let lastFmService: LastFmService | null = null;
+let lastFmSyncInterval: NodeJS.Timeout | null = null;
 
 if (supabaseUrl && supabaseKey) {
   supabase = createClient(supabaseUrl, supabaseKey);
   bluetoothManager = new BluetoothManager(supabase);
+  speakerManager = new BluetoothSpeakerManager(supabase);
+  if (lastFmApiKey && lastFmApiSecret) {
+    lastFmService = new LastFmService(lastFmApiKey, lastFmApiSecret, supabase);
+  }
 }
 
 app.use(cors());
@@ -413,6 +424,258 @@ app.get('/api/victron-devices/discovery/logs', async (req: Request, res: Respons
   }
 });
 
+app.get('/api/speakers', async (req: Request, res: Response) => {
+  if (!speakerManager) {
+    return res.status(500).json({ error: 'Speaker manager not initialized' });
+  }
+
+  try {
+    const speakers = await speakerManager.getAllSpeakers();
+    res.json(speakers);
+  } catch (error) {
+    console.error('Error fetching speakers:', error);
+    res.status(500).json({ error: 'Failed to fetch speakers' });
+  }
+});
+
+app.get('/api/speakers/connected', async (req: Request, res: Response) => {
+  if (!speakerManager) {
+    return res.status(500).json({ error: 'Speaker manager not initialized' });
+  }
+
+  try {
+    const speaker = await speakerManager.getConnectedSpeaker();
+    res.json(speaker || {});
+  } catch (error) {
+    console.error('Error fetching connected speaker:', error);
+    res.status(500).json({ error: 'Failed to fetch connected speaker' });
+  }
+});
+
+app.post('/api/speakers/discover', async (req: Request, res: Response) => {
+  if (!speakerManager) {
+    return res.status(500).json({ error: 'Speaker manager not initialized' });
+  }
+
+  try {
+    const speakers = await speakerManager.discoverSpeakers();
+    res.json(speakers);
+  } catch (error) {
+    console.error('Error discovering speakers:', error);
+    res.status(500).json({ error: 'Failed to discover speakers' });
+  }
+});
+
+app.post('/api/speakers', async (req: Request, res: Response) => {
+  if (!speakerManager) {
+    return res.status(500).json({ error: 'Speaker manager not initialized' });
+  }
+
+  try {
+    const { device_name, mac_address } = req.body;
+
+    if (!device_name || !mac_address) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const speaker = await speakerManager.registerSpeaker(device_name, mac_address);
+    res.status(201).json(speaker);
+  } catch (error) {
+    console.error('Error registering speaker:', error);
+    res.status(500).json({ error: 'Failed to register speaker' });
+  }
+});
+
+app.put('/api/speakers/:id/status', async (req: Request, res: Response) => {
+  if (!speakerManager) {
+    return res.status(500).json({ error: 'Speaker manager not initialized' });
+  }
+
+  try {
+    const { id } = req.params;
+    const { status, signal_strength } = req.body;
+
+    if (!status || !['connected', 'disconnected', 'error'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    await speakerManager.updateSpeakerStatus(id, status, signal_strength);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating speaker status:', error);
+    res.status(500).json({ error: 'Failed to update speaker status' });
+  }
+});
+
+app.delete('/api/speakers/:id', async (req: Request, res: Response) => {
+  if (!speakerManager) {
+    return res.status(500).json({ error: 'Speaker manager not initialized' });
+  }
+
+  try {
+    const { id } = req.params;
+    await speakerManager.removeSpeaker(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error removing speaker:', error);
+    res.status(500).json({ error: 'Failed to remove speaker' });
+  }
+});
+
+app.get('/api/music/playback', async (req: Request, res: Response) => {
+  if (!speakerManager) {
+    return res.status(500).json({ error: 'Speaker manager not initialized' });
+  }
+
+  try {
+    const playback = await speakerManager.getPlaybackState();
+    res.json(playback || {});
+  } catch (error) {
+    console.error('Error fetching playback state:', error);
+    res.status(500).json({ error: 'Failed to fetch playback state' });
+  }
+});
+
+app.put('/api/music/playback/:id', async (req: Request, res: Response) => {
+  if (!speakerManager) {
+    return res.status(500).json({ error: 'Speaker manager not initialized' });
+  }
+
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    await speakerManager.updatePlaybackState(id, updates);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating playback state:', error);
+    res.status(500).json({ error: 'Failed to update playback state' });
+  }
+});
+
+app.put('/api/music/track/:id', async (req: Request, res: Response) => {
+  if (!speakerManager) {
+    return res.status(500).json({ error: 'Speaker manager not initialized' });
+  }
+
+  try {
+    const { id } = req.params;
+    const { track_title, artist_name, album_name, album_artwork_url } = req.body;
+
+    if (!track_title || !artist_name || !album_name) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    await speakerManager.updatePlaybackTrack(
+      id,
+      track_title,
+      artist_name,
+      album_name,
+      album_artwork_url
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating track:', error);
+    res.status(500).json({ error: 'Failed to update track' });
+  }
+});
+
+app.get('/api/lastfm/current', async (req: Request, res: Response) => {
+  if (!lastFmService) {
+    return res.status(500).json({ error: 'Last.fm service not configured' });
+  }
+
+  try {
+    const track = await lastFmService.getStoredCurrentTrack();
+    res.json(track || {});
+  } catch (error) {
+    console.error('Error fetching current Last.fm track:', error);
+    res.status(500).json({ error: 'Failed to fetch current track' });
+  }
+});
+
+app.get('/api/lastfm/recent', async (req: Request, res: Response) => {
+  if (!lastFmService) {
+    return res.status(500).json({ error: 'Last.fm service not configured' });
+  }
+
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+    const scrobbles = await lastFmService.getStoredScrobbles(limit, offset);
+    res.json(scrobbles);
+  } catch (error) {
+    console.error('Error fetching Last.fm scrobbles:', error);
+    res.status(500).json({ error: 'Failed to fetch scrobbles' });
+  }
+});
+
+app.post('/api/lastfm/sync', async (req: Request, res: Response) => {
+  if (!lastFmService || !supabase) {
+    return res.status(500).json({ error: 'Last.fm service not configured' });
+  }
+
+  try {
+    const { data: settings } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'lastfm_username')
+      .maybeSingle();
+
+    if (!settings?.value) {
+      return res.status(400).json({ error: 'Last.fm username not configured' });
+    }
+
+    const username = settings.value;
+
+    const currentTrack = await lastFmService.getCurrentTrack(username);
+    if (currentTrack) {
+      await lastFmService.storeCurrentTrack(currentTrack);
+    }
+
+    if (!currentTrack?.is_playing) {
+      await lastFmService.storeScrobbles(username, 100);
+    }
+
+    res.json({ success: true, currentTrack });
+  } catch (error) {
+    console.error('Error syncing Last.fm data:', error);
+    res.status(500).json({ error: 'Failed to sync Last.fm data' });
+  }
+});
+
+app.post('/api/lastfm/config', async (req: Request, res: Response) => {
+  if (!supabase) {
+    return res.status(500).json({ error: 'Supabase not configured' });
+  }
+
+  try {
+    const { username } = req.body;
+
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+
+    const { error: upsertError } = await supabase
+      .from('app_settings')
+      .upsert([
+        {
+          key: 'lastfm_username',
+          value: username,
+          category: 'music',
+          description: 'Last.fm username for music scrobbling'
+        }
+      ]);
+
+    if (upsertError) throw upsertError;
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error configuring Last.fm:', error);
+    res.status(500).json({ error: 'Failed to configure Last.fm' });
+  }
+});
+
 async function performUpdate() {
   if (isUpdating) {
     return { status: 'update already in progress' };
@@ -504,6 +767,51 @@ const server = createServer(app);
 
 (server as any).setOption?.('SO_REUSEADDR', 1);
 
+async function initializeLastFmSync() {
+  if (!lastFmService || !supabase) return;
+
+  try {
+    const { data: settings } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'lastfm_username')
+      .maybeSingle();
+
+    if (settings?.value) {
+      console.log('Last.fm sync initialized');
+      const syncInterval = parseInt(process.env.LASTFM_SYNC_INTERVAL || '30') * 1000;
+
+      if (lastFmSyncInterval) clearInterval(lastFmSyncInterval);
+
+      lastFmSyncInterval = setInterval(async () => {
+        try {
+          const username = settings.value;
+          const currentTrack = await lastFmService.getCurrentTrack(username);
+          if (currentTrack) {
+            await lastFmService.storeCurrentTrack(currentTrack);
+          }
+          if (!currentTrack?.is_playing) {
+            await lastFmService.storeScrobbles(username, 50);
+          }
+        } catch (error) {
+          console.error('Last.fm sync error:', error);
+        }
+      }, syncInterval);
+
+      try {
+        const currentTrack = await lastFmService.getCurrentTrack(settings.value);
+        if (currentTrack) {
+          await lastFmService.storeCurrentTrack(currentTrack);
+        }
+      } catch (error) {
+        console.error('Initial Last.fm sync failed:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to initialize Last.fm sync:', error);
+  }
+}
+
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`========================================`);
   console.log(`  Raspberry Pi Dashboard Started`);
@@ -511,6 +819,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`Local:   http://localhost:${PORT}`);
   console.log(`Network: http://${getLocalIP()}:${PORT}`);
   console.log(`========================================`);
+  initializeLastFmSync();
 });
 
 server.on('error', (err: NodeJS.ErrnoException) => {
