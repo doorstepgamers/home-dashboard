@@ -1,0 +1,1 @@
+{"version":3,"file":"database.js","sourceRoot":"","sources":["../../src/server/types/database.ts"],"names":[],"mappings":""}

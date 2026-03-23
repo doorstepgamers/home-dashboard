@@ -1,0 +1,1 @@
+{"version":3,"file":"system-stats.d.ts","sourceRoot":"","sources":["../src/server/system-stats.ts"],"names":[],"mappings":"AAQA,UAAU,WAAW;IACnB,QAAQ,EAAE,MAAM,CAAC;IACjB,OAAO,EAAE,MAAM,CAAC;IAChB,UAAU,EAAE,MAAM,CAAC;IACnB,WAAW,EAAE,MAAM,CAAC;IACpB,QAAQ,EAAE,MAAM,CAAC;IACjB,SAAS,EAAE,MAAM,CAAC;IAClB,MAAM,EAAE,MAAM,CAAC;CAChB;AAqED,wBAAsB,cAAc,IAAI,OAAO,CAAC,WAAW,CAAC,CAmB3D"}
