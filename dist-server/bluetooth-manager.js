@@ -142,6 +142,43 @@ export class BluetoothManager {
         try {
             const discoveredDevices = [];
             console.log('Starting Bluetooth device discovery...');
+            try {
+                const noble = await import('@abandonware/noble');
+                const nobleInstance = noble.default || noble;
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        nobleInstance.stopScanning();
+                        resolve();
+                    }, 15000);
+                    nobleInstance.on('discover', (peripheral) => {
+                        const name = peripheral.advertisement?.localName || peripheral.advertisement?.completeLocalName || 'Unknown';
+                        const rssi = peripheral.rssi || -100;
+                        if (name && (name.includes('Victron') || name.includes('MPPT') || name.includes('Shunt'))) {
+                            const deviceType = name.includes('Shunt') ? 'shunt' : 'mppt';
+                            const signalStrength = Math.max(-100, Math.min(-30, rssi));
+                            const device = {
+                                mac_address: peripheral.address,
+                                name: name,
+                                device_type: deviceType,
+                                signal_strength: signalStrength
+                            };
+                            if (!discoveredDevices.find(d => d.mac_address === peripheral.address)) {
+                                discoveredDevices.push(device);
+                                console.log(`Discovered: ${name} (${peripheral.address}) - Signal: ${rssi}dBm`);
+                            }
+                        }
+                    });
+                    nobleInstance.startScanning([], true, (err) => {
+                        if (err) {
+                            clearTimeout(timeout);
+                            reject(err);
+                        }
+                    });
+                });
+            }
+            catch (error) {
+                console.warn('Noble not available or Bluetooth error:', error instanceof Error ? error.message : String(error));
+            }
             await this.supabase
                 .from('victron_device_discovery_logs')
                 .insert({
