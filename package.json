@@ -5,13 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && npm run build:server",
-    "build:server": "tsc --project tsconfig.server.json",
+    "build": "vite build && tsc --project tsconfig.server.json",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "start:production": "node raspberry-pi/start-production.js",
-    "start:heartbeat": "node raspberry-pi/heartbeat.js"
+    "start": "node dist-server/index.js",
+    "heartbeat": "node raspberry-pi/heartbeat.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

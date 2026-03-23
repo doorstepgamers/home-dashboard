@@ -1,3 +1,8 @@
+import { createServer } from 'http';
+import { readFileSync, existsSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { networkInterfaces } from 'os';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -6,7 +11,12 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const app = express();
+const PORT = Number(process.env.PORT) || 3000;
+const DIST_DIR = join(__dirname, '..', '..', 'dist');
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
@@ -19,7 +29,7 @@ if (supabaseUrl && supabaseKey) {
 app.use(cors());
 app.use(express.json());
 
-app.get('/system-stats', async (req: Request, res: Response) => {
+app.get('/api/system-stats', async (req: Request, res: Response) => {
   try {
     const stats = await getSystemStats();
     res.json(stats);
@@ -29,11 +39,11 @@ app.get('/system-stats', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/health', (req: Request, res: Response) => {
+app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.get('/settings/:key', async (req: Request, res: Response) => {
+app.get('/api/settings/:key', async (req: Request, res: Response) => {
   if (!supabase) {
     return res.status(500).json({ error: 'Supabase not configured' });
   }
@@ -55,7 +65,7 @@ app.get('/settings/:key', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/heartbeat', async (req: Request, res: Response) => {
+app.post('/api/heartbeat', async (req: Request, res: Response) => {
   if (!supabase) {
     return res.status(500).json({ error: 'Supabase not configured' });
   }
@@ -102,7 +112,7 @@ app.post('/heartbeat', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/update-tracker', async (req: Request, res: Response) => {
+app.post('/api/update-tracker', async (req: Request, res: Response) => {
   if (!supabase) {
     return res.status(500).json({ error: 'Supabase not configured' });
   }
@@ -131,4 +141,49 @@ app.post('/update-tracker', async (req: Request, res: Response) => {
   }
 });
 
-export default app;
+app.use(express.static(DIST_DIR));
+
+app.get('*', (req: Request, res: Response) => {
+  const indexPath = join(DIST_DIR, 'index.html');
+  res.setHeader('Content-Type', 'text/html');
+  res.send(readFileSync(indexPath, 'utf8'));
+});
+
+const server = createServer(app);
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`========================================`);
+  console.log(`  Raspberry Pi Dashboard Started`);
+  console.log(`========================================`);
+  console.log(`Local:   http://localhost:${PORT}`);
+  console.log(`Network: http://${getLocalIP()}:${PORT}`);
+  console.log(`========================================`);
+});
+
+function getLocalIP() {
+  const nets = networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return 'localhost';
+}
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
