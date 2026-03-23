@@ -255,8 +255,9 @@ app.post('/api/victron-devices', async (req, res) => {
         res.status(201).json(device);
     }
     catch (error) {
-        console.error('Error registering device:', error);
-        res.status(500).json({ error: 'Failed to register device' });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Error registering device:', errorMessage);
+        res.status(500).json({ error: `Failed to register device: ${errorMessage}` });
     }
 });
 app.put('/api/victron-devices/:id', async (req, res) => {
@@ -327,8 +328,9 @@ app.post('/api/victron-devices/:id/test-connection', async (req, res) => {
         res.json({ success });
     }
     catch (error) {
-        console.error('Error testing connection:', error);
-        res.status(500).json({ error: 'Failed to test connection' });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Error testing connection:', errorMessage);
+        res.status(500).json({ error: `Failed to test connection: ${errorMessage}` });
     }
 });
 app.get('/api/victron-devices/:id/status', async (req, res) => {

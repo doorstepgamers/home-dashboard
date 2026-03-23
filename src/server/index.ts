@@ -293,8 +293,9 @@ app.post('/api/victron-devices', async (req: Request, res: Response) => {
 
     res.status(201).json(device);
   } catch (error) {
-    console.error('Error registering device:', error);
-    res.status(500).json({ error: 'Failed to register device' });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error registering device:', errorMessage);
+    res.status(500).json({ error: `Failed to register device: ${errorMessage}` });
   }
 });
 
@@ -372,8 +373,9 @@ app.post('/api/victron-devices/:id/test-connection', async (req: Request, res: R
     const success = await bluetoothManager.testConnection(id, pin_code);
     res.json({ success });
   } catch (error) {
-    console.error('Error testing connection:', error);
-    res.status(500).json({ error: 'Failed to test connection' });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error testing connection:', errorMessage);
+    res.status(500).json({ error: `Failed to test connection: ${errorMessage}` });
   }
 });
 

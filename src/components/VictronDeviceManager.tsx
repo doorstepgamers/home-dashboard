@@ -286,7 +286,12 @@ export default function VictronDeviceManager() {
                       </button>
 
                       <button
-                        onClick={() => handleTestConnection(device.id, '')}
+                        onClick={() => {
+                          const pinCode = prompt('Enter device PIN code:');
+                          if (pinCode) {
+                            handleTestConnection(device.id, pinCode);
+                          }
+                        }}
                         disabled={testingConnection === device.id || loading}
                         className="flex items-center gap-1 px-3 py-2 rounded text-sm font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition disabled:opacity-50"
                       >
