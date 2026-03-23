@@ -32,6 +32,22 @@ module.exports = {
       out_file: '/home/pi/.pm2/logs/home-dashboard-heartbeat-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true
+    },
+    {
+      name: 'home-dashboard-victron',
+      script: 'raspberry-pi/victron-reader.js',
+      cwd: '/home/pi/home-dashboard',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '100M',
+      env: {
+        NODE_ENV: 'production'
+      },
+      error_file: '/home/pi/.pm2/logs/home-dashboard-victron-error.log',
+      out_file: '/home/pi/.pm2/logs/home-dashboard-victron-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true
     }
   ]
 };

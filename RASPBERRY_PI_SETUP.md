@@ -267,6 +267,49 @@ You should see:
 
 All API keys are now stored securely in Supabase instead of .env files!
 
+### Step 10: (Optional) Set Up Victron Energy Monitoring
+
+If you have a Victron Energy MPPT charge controller or battery shunt connected via VE.Direct:
+
+1. Connect the Victron device to your Raspberry Pi via USB using a VE.Direct USB cable
+2. Identify the USB port:
+   ```bash
+   ls /dev/ttyUSB*
+   ```
+   (Usually `/dev/ttyUSB0` for the first device)
+
+3. Install dependencies for serialport:
+   ```bash
+   cd ~/home-dashboard
+   npm install
+   npm run build
+   ```
+
+4. Click the "Admin" button in the dashboard and navigate to the Victron section:
+   - Set **Victron Port** to your USB port (e.g., `/dev/ttyUSB0`)
+   - Toggle **Victron Enabled** to ON
+   - Click "Save Settings"
+
+5. Start the Victron reader:
+   ```bash
+   pm2 start home-dashboard-victron
+   pm2 save
+   ```
+
+6. Verify it's working:
+   ```bash
+   pm2 logs home-dashboard-victron
+   ```
+
+7. Go back to the main dashboard - you should now see the Victron Energy card displaying:
+   - **PV Voltage/Current/Power** - Solar panel output
+   - **Battery Voltage/Current/Power** - Battery charging status
+   - **Load Current** - Power consumption
+   - **Today's Yield** - Daily energy production
+   - **Total Yield** - Lifetime energy production
+   - **Temperature** - Device and battery temperature
+   - **Efficiency** - MPPT efficiency percentage
+
 ## Part 4: How It Works
 
 ### Automatic Updates
@@ -298,6 +341,7 @@ Every 10 seconds, your Pi:
 pm2 status                                    # View all running processes
 pm2 logs home-dashboard                       # View dashboard logs
 pm2 logs home-dashboard-heartbeat             # View heartbeat logs
+pm2 logs home-dashboard-victron               # View Victron reader logs
 pm2 logs home-dashboard-auto-update           # View update logs
 pm2 restart home-dashboard                    # Restart dashboard
 pm2 stop home-dashboard                       # Stop dashboard

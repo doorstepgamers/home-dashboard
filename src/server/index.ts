@@ -11,6 +11,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { getSystemStats } from './system-stats.js';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { VictronData } from './victron-reader.js';
 
 dotenv.config();
 
@@ -165,6 +166,77 @@ app.post('/api/update-tracker', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error updating tracker:', error);
     res.status(500).json({ error: 'Failed to update tracker' });
+  }
+});
+
+app.post('/api/victron-data', async (req: Request, res: Response) => {
+  if (!supabase) {
+    return res.status(500).json({ error: 'Supabase not configured' });
+  }
+
+  try {
+    const { device_id, data } = req.body as { device_id: string; data: VictronData };
+
+    if (!device_id || !data) {
+      return res.status(400).json({ error: 'device_id and data are required' });
+    }
+
+    const { error } = await supabase
+      .from('victron_data')
+      .insert({
+        device_id,
+        device_type: data.device_type,
+        pv_voltage: data.pv_voltage ?? null,
+        pv_current: data.pv_current ?? null,
+        pv_power: data.pv_power ?? null,
+        battery_voltage: data.battery_voltage ?? null,
+        battery_current: data.battery_current ?? null,
+        battery_power: data.battery_power ?? null,
+        load_current: data.load_current ?? null,
+        yield_today: data.yield_today ?? null,
+        yield_total: data.yield_total ?? null,
+        efficiency: data.efficiency ?? null,
+        temperature: data.temperature ?? null,
+        state_of_operation: data.state_of_operation ?? null,
+        error_code: data.error_code ?? null,
+        raw_data: data.raw_data,
+      });
+
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error storing victron data:', error);
+    res.status(500).json({ error: 'Failed to store victron data' });
+  }
+});
+
+app.get('/api/victron-data/latest', async (req: Request, res: Response) => {
+  if (!supabase) {
+    return res.status(500).json({ error: 'Supabase not configured' });
+  }
+
+  try {
+    const { device_id } = req.query;
+
+    let query = supabase
+      .from('victron_data')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .limit(1);
+
+    if (device_id) {
+      query = query.eq('device_id', device_id as string);
+    }
+
+    const { data, error } = await query.maybeSingle();
+
+    if (error) throw error;
+
+    res.json(data || {});
+  } catch (error) {
+    console.error('Error fetching victron data:', error);
+    res.status(500).json({ error: 'Failed to fetch victron data' });
   }
 });
 

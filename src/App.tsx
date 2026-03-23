@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import WeatherCard from './components/WeatherCard';
 import SystemStatsCard from './components/SystemStatsCard';
 import DeviceStatusCard from './components/DeviceStatusCard';
+import VictronDataCard from './components/VictronDataCard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { supabase } from './lib/supabase';
 
@@ -111,6 +112,7 @@ function App() {
           <DeviceStatusCard />
           <WeatherCard />
           <SystemStatsCard />
+          <VictronDataCard />
         </div>
       </main>
 
