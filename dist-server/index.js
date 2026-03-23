@@ -27,6 +27,26 @@ app.get('/api/system-stats', async (req, res) => {
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+app.get('/api/settings/:key', async (req, res) => {
+    if (!supabase) {
+        return res.status(500).json({ error: 'Supabase not configured' });
+    }
+    try {
+        const { key } = req.params;
+        const { data, error } = await supabase
+            .from('app_settings')
+            .select('value')
+            .eq('key', key)
+            .maybeSingle();
+        if (error)
+            throw error;
+        res.json({ value: data?.value || '' });
+    }
+    catch (error) {
+        console.error('Error fetching setting:', error);
+        res.status(500).json({ error: 'Failed to fetch setting' });
+    }
+});
 app.post('/api/heartbeat', async (req, res) => {
     if (!supabase) {
         return res.status(500).json({ error: 'Supabase not configured' });

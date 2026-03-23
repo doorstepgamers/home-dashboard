@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Cloud, Droplets, Wind, Thermometer } from 'lucide-react';
 import Card from './Card';
+import { getSettings } from '../lib/supabase';
 
 interface WeatherData {
   temperature: number;
@@ -22,8 +23,9 @@ export default function WeatherCard() {
       setLoading(true);
       setError(null);
 
-      const apiKey = import.meta.env.VITE_WEATHER_API_KEY;
-      const location = import.meta.env.VITE_WEATHER_LOCATION || 'London';
+      const settings = await getSettings(['weather_api_key', 'weather_location']);
+      const apiKey = settings.weather_api_key;
+      const location = settings.weather_location || 'London';
 
       if (!apiKey) {
         setError('Weather API key not configured');
@@ -75,7 +77,7 @@ export default function WeatherCard() {
         <div className="text-red-500 text-sm bg-red-50 p-3 rounded">
           {error}
           <div className="text-xs mt-1 text-gray-600">
-            Add VITE_WEATHER_API_KEY to .env file
+            Configure weather API key in the admin dashboard
           </div>
         </div>
       )}

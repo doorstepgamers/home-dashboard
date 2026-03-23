@@ -1,9 +1,10 @@
-import { Home } from 'lucide-react';
+import { Home, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import WeatherCard from './components/WeatherCard';
 import SystemStatsCard from './components/SystemStatsCard';
 import DeviceStatusCard from './components/DeviceStatusCard';
+import { AdminDashboard } from './components/AdminDashboard';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -13,6 +14,16 @@ const supabase = supabaseUrl && supabaseKey
   : null;
 
 function App() {
+  const [showAdmin, setShowAdmin] = useState(false);
+
+  useEffect(() => {
+    const isAdmin = window.location.pathname === '/admin';
+    setShowAdmin(isAdmin);
+  }, []);
+
+  if (showAdmin) {
+    return <AdminDashboard />;
+  }
   const currentTime = new Date().toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
@@ -82,7 +93,16 @@ function App() {
               <Home size={28} className="text-blue-600" />
               <h1 className="text-2xl font-bold text-gray-800">Home Dashboard</h1>
             </div>
-            <div className="text-sm text-gray-600">{currentTime}</div>
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-gray-600">{currentTime}</div>
+              <a
+                href="/admin"
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              >
+                <Settings size={16} />
+                Admin
+              </a>
+            </div>
           </div>
         </div>
       </header>
