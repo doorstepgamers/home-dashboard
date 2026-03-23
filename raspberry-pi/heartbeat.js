@@ -7,7 +7,7 @@ import crypto from 'crypto';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const HEARTBEAT_INTERVAL = 10000;
+const HEARTBEAT_INTERVAL = 60000;
 const API_URL = 'http://localhost:3000/heartbeat';
 const DEVICE_ID_FILE = path.join(__dirname, '.device-id');
 

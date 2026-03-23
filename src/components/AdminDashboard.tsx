@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, Save, X } from 'lucide-react';
+import { Settings, Save, X, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface Setting {
@@ -14,6 +14,7 @@ export function AdminDashboard() {
   const [settings, setSettings] = useState<Setting[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [message, setMessage] = useState('');
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
 
@@ -86,6 +87,34 @@ export function AdminDashboard() {
     setEditedValues(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleUpdate = async () => {
+    setUpdating(true);
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setMessage(`Update failed: ${result.error || 'Unknown error'}`);
+      } else {
+        setMessage('Update started! This may take a few minutes...');
+        setTimeout(() => setMessage(''), 5000);
+      }
+    } catch (error) {
+      console.error('Error triggering update:', error);
+      setMessage('Failed to trigger update');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const groupedSettings = settings.reduce((acc, setting) => {
     if (!acc[setting.category]) {
       acc[setting.category] = [];
@@ -126,13 +155,13 @@ export function AdminDashboard() {
         )}
 
         {loading ? (
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
+          <div className="glass-card">
             <div className="text-center text-slate-400">Loading settings...</div>
           </div>
         ) : (
           <div className="space-y-6">
             {Object.entries(groupedSettings).map(([category, categorySettings]) => (
-              <div key={category} className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
+              <div key={category} className="glass-card">
                 <h2 className="text-xl font-semibold text-white mb-4 capitalize">
                   {category} Settings
                 </h2>
@@ -158,22 +187,32 @@ export function AdminDashboard() {
               </div>
             ))}
 
-            <div className="flex justify-end gap-4">
+            <div className="flex justify-between gap-4">
               <button
-                onClick={loadSettings}
-                disabled={saving}
-                className="px-6 py-3 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleUpdate}
+                disabled={updating}
+                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Reset Changes
+                <Download className="w-4 h-4" />
+                {updating ? 'Updating...' : 'Update from GitHub'}
               </button>
-              <button
-                onClick={handleSave}
-                disabled={saving || !hasChanges}
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Save className="w-4 h-4" />
-                {saving ? 'Saving...' : 'Save Settings'}
-              </button>
+              <div className="flex gap-4">
+                <button
+                  onClick={loadSettings}
+                  disabled={saving}
+                  className="px-6 py-3 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Reset Changes
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving || !hasChanges}
+                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save className="w-4 h-4" />
+                  {saving ? 'Saving...' : 'Save Settings'}
+                </button>
+              </div>
             </div>
           </div>
         )}

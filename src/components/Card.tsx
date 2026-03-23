@@ -9,12 +9,12 @@ interface CardProps {
 
 export default function Card({ title, children, icon, className = '' }: CardProps) {
   return (
-    <div className={`bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200 ${className}`}>
+    <div className={`glass-card rounded-2xl p-6 hover:shadow-xl transition-all duration-300 ${className}`}>
       <div className="flex items-center gap-2 mb-4">
-        {icon && <div className="text-blue-600">{icon}</div>}
-        <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+        {icon && <div className="text-blue-400">{icon}</div>}
+        <h2 className="text-xl font-semibold text-gray-50">{title}</h2>
       </div>
-      <div>{children}</div>
+      <div className="text-gray-100">{children}</div>
     </div>
   );
 }

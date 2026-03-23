@@ -240,26 +240,17 @@ app.get('/api/victron-data/latest', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/webhook/github', async (req: Request, res: Response) => {
+async function performUpdate() {
   if (isUpdating) {
-    return res.status(202).json({ status: 'update already in progress' });
+    return { status: 'update already in progress' };
   }
 
   try {
-    const signature = req.headers['x-hub-signature-256'] as string;
-    const rawBody = (req as any).rawBody || '';
-
-    if (!signature || !validateGitHubSignature(rawBody, signature)) {
-      return res.status(401).json({ error: 'Invalid signature' });
-    }
-
     isUpdating = true;
-    res.json({ status: 'update started' });
-
     const dashboardDir = process.env.DASHBOARD_DIR || `${process.env.HOME || '/home/pi'}/home-dashboard`;
 
     try {
-      console.log('GitHub webhook triggered - starting auto-update...');
+      console.log('Starting update...');
 
       await execAsync(`cd "${dashboardDir}" && git pull`, { maxBuffer: 10 * 1024 * 1024 });
       console.log('Git pull completed');
@@ -285,15 +276,49 @@ app.post('/api/webhook/github', async (req: Request, res: Response) => {
           // Device ID file might not exist, that's okay
         }
       }
+
+      return { status: 'update completed successfully' };
     } catch (error) {
       console.error('Update failed:', error);
+      return { status: 'update failed', error: String(error) };
     } finally {
       isUpdating = false;
     }
   } catch (error) {
+    console.error('Update error:', error);
+    return { status: 'update error', error: String(error) };
+  }
+}
+
+app.post('/api/webhook/github', async (req: Request, res: Response) => {
+  try {
+    const signature = req.headers['x-hub-signature-256'] as string;
+    const rawBody = (req as any).rawBody || '';
+
+    if (!signature || !validateGitHubSignature(rawBody, signature)) {
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+
+    res.json({ status: 'update started' });
+    await performUpdate();
+  } catch (error) {
     console.error('Webhook error:', error);
     res.status(500).json({ error: 'Webhook processing failed' });
   }
+});
+
+app.post('/api/update', async (req: Request, res: Response) => {
+  const result = await performUpdate();
+
+  if (result.status === 'update already in progress') {
+    return res.status(202).json(result);
+  }
+
+  if (result.error) {
+    return res.status(500).json(result);
+  }
+
+  res.json(result);
 });
 
 app.get('*', (req: Request, res: Response) => {

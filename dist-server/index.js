@@ -212,21 +212,15 @@ app.get('/api/victron-data/latest', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch victron data' });
     }
 });
-app.post('/api/webhook/github', async (req, res) => {
+async function performUpdate() {
     if (isUpdating) {
-        return res.status(202).json({ status: 'update already in progress' });
+        return { status: 'update already in progress' };
     }
     try {
-        const signature = req.headers['x-hub-signature-256'];
-        const rawBody = req.rawBody || '';
-        if (!signature || !validateGitHubSignature(rawBody, signature)) {
-            return res.status(401).json({ error: 'Invalid signature' });
-        }
         isUpdating = true;
-        res.json({ status: 'update started' });
         const dashboardDir = process.env.DASHBOARD_DIR || `${process.env.HOME || '/home/pi'}/home-dashboard`;
         try {
-            console.log('GitHub webhook triggered - starting auto-update...');
+            console.log('Starting update...');
             await execAsync(`cd "${dashboardDir}" && git pull`, { maxBuffer: 10 * 1024 * 1024 });
             console.log('Git pull completed');
             await execAsync(`cd "${dashboardDir}" && npm install`, { maxBuffer: 10 * 1024 * 1024, timeout: 120000 });
@@ -248,18 +242,45 @@ app.post('/api/webhook/github', async (req, res) => {
                     // Device ID file might not exist, that's okay
                 }
             }
+            return { status: 'update completed successfully' };
         }
         catch (error) {
             console.error('Update failed:', error);
+            return { status: 'update failed', error: String(error) };
         }
         finally {
             isUpdating = false;
         }
     }
     catch (error) {
+        console.error('Update error:', error);
+        return { status: 'update error', error: String(error) };
+    }
+}
+app.post('/api/webhook/github', async (req, res) => {
+    try {
+        const signature = req.headers['x-hub-signature-256'];
+        const rawBody = req.rawBody || '';
+        if (!signature || !validateGitHubSignature(rawBody, signature)) {
+            return res.status(401).json({ error: 'Invalid signature' });
+        }
+        res.json({ status: 'update started' });
+        await performUpdate();
+    }
+    catch (error) {
         console.error('Webhook error:', error);
         res.status(500).json({ error: 'Webhook processing failed' });
     }
+});
+app.post('/api/update', async (req, res) => {
+    const result = await performUpdate();
+    if (result.status === 'update already in progress') {
+        return res.status(202).json(result);
+    }
+    if (result.error) {
+        return res.status(500).json(result);
+    }
+    res.json(result);
 });
 app.get('*', (req, res) => {
     const indexPath = join(DIST_DIR, 'index.html');
