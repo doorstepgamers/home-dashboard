@@ -68,8 +68,10 @@ async function sendHeartbeat() {
   const deviceId = getDeviceId();
   const systemInfo = getSystemStats();
   const ipAddress = getLocalIpAddress();
+  const timestamp = new Date().toISOString();
 
   try {
+    console.log(`[${timestamp}] Sending heartbeat to http://localhost:3000/api/heartbeat`);
     const response = await fetch('http://localhost:3000/api/heartbeat', {
       method: 'POST',
       headers: {
@@ -87,9 +89,10 @@ async function sendHeartbeat() {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    console.log('Heartbeat sent successfully');
+    const result = await response.json();
+    console.log(`[${timestamp}] Heartbeat sent successfully:`, result);
   } catch (error) {
-    console.error('Error sending heartbeat:', error.message);
+    console.error(`[${timestamp}] Error sending heartbeat:`, error.message);
   }
 }
 

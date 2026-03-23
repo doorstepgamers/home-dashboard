@@ -11,8 +11,7 @@ function App() {
   const [currentTime, setCurrentTime] = useState(() =>
     new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
   );
-  const [lastCheckTime, setLastCheckTime] = useState<string | null>(null);
-  const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
+  const [lastSeenTime, setLastSeenTime] = useState<string | null>(null);
 
   useEffect(() => {
     const isAdmin = window.location.pathname === '/admin';
@@ -32,25 +31,24 @@ function App() {
     if (!supabase) return;
     const client = supabase;
 
-    const fetchUpdateTimes = async () => {
+    const fetchLastSeen = async () => {
       const { data } = await client
         .from('device_status')
-        .select('last_check_time, last_update_time')
+        .select('last_seen')
         .order('last_seen', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (data) {
-        setLastCheckTime(data.last_check_time);
-        setLastUpdateTime(data.last_update_time);
+        setLastSeenTime(data.last_seen);
       }
     };
 
-    fetchUpdateTimes();
-    const interval = setInterval(fetchUpdateTimes, 5000);
+    fetchLastSeen();
+    const interval = setInterval(fetchLastSeen, 5000);
 
     const channel = client
-      .channel('update_times_changes')
+      .channel('device_status_changes')
       .on(
         'postgres_changes',
         {
@@ -59,7 +57,7 @@ function App() {
           table: 'device_status'
         },
         () => {
-          fetchUpdateTimes();
+          fetchLastSeen();
         }
       )
       .subscribe();
@@ -118,13 +116,8 @@ function App() {
 
       <footer className="bg-white border-t border-gray-200 py-3">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between text-xs text-gray-600">
-            <div>
-              <span className="font-medium">Last Check:</span> {formatTimestamp(lastCheckTime)}
-            </div>
-            <div>
-              <span className="font-medium">Last Update:</span> {formatTimestamp(lastUpdateTime)}
-            </div>
+          <div className="text-xs text-gray-600">
+            <span className="font-medium">Last Device Heartbeat:</span> {formatTimestamp(lastSeenTime)}
           </div>
         </div>
       </footer>
