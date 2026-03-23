@@ -759,6 +759,24 @@ app.post('/api/update', async (req: Request, res: Response) => {
   res.json(result);
 });
 
+app.post('/api/restart', async (req: Request, res: Response) => {
+  try {
+    res.json({ status: 'restart initiated' });
+
+    setTimeout(async () => {
+      try {
+        await execAsync('pm2 restart home-dashboard home-dashboard-heartbeat', { timeout: 30000 });
+        console.log('PM2 processes restarted via API');
+      } catch (error) {
+        console.error('Restart failed:', error);
+      }
+    }, 500);
+  } catch (error) {
+    console.error('Restart error:', error);
+    res.status(500).json({ error: 'Failed to initiate restart' });
+  }
+});
+
 app.get('*', (req: Request, res: Response) => {
   const indexPath = join(DIST_DIR, 'index.html');
   res.setHeader('Content-Type', 'text/html');

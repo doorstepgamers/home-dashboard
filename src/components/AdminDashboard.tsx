@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, Save, X, Download } from 'lucide-react';
+import { Settings, Save, X, Download, RotateCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import VictronDeviceManager from './VictronDeviceManager';
 import LastFmSettings from './LastFmSettings';
@@ -17,6 +17,7 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [restarting, setRestarting] = useState(false);
   const [message, setMessage] = useState('');
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
 
@@ -117,6 +118,38 @@ export function AdminDashboard() {
     }
   };
 
+  const handleRestart = async () => {
+    if (!confirm('Are you sure you want to restart the device?')) {
+      return;
+    }
+
+    setRestarting(true);
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/restart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setMessage(`Restart failed: ${result.error || 'Unknown error'}`);
+      } else {
+        setMessage('Restart initiated! Device will reboot shortly...');
+        setTimeout(() => setMessage(''), 5000);
+      }
+    } catch (error) {
+      console.error('Error triggering restart:', error);
+      setMessage('Failed to trigger restart');
+    } finally {
+      setRestarting(false);
+    }
+  };
+
   const groupedSettings = settings.reduce((acc, setting) => {
     if (!acc[setting.category]) {
       acc[setting.category] = [];
@@ -193,14 +226,24 @@ export function AdminDashboard() {
             ))}
 
             <div className="flex justify-between gap-4">
-              <button
-                onClick={handleUpdate}
-                disabled={updating}
-                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Download className="w-4 h-4" />
-                {updating ? 'Updating...' : 'Update from GitHub'}
-              </button>
+              <div className="flex gap-4">
+                <button
+                  onClick={handleUpdate}
+                  disabled={updating}
+                  className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download className="w-4 h-4" />
+                  {updating ? 'Updating...' : 'Update from GitHub'}
+                </button>
+                <button
+                  onClick={handleRestart}
+                  disabled={restarting}
+                  className="flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RotateCw className="w-4 h-4" />
+                  {restarting ? 'Restarting...' : 'Restart Device'}
+                </button>
+              </div>
               <div className="flex gap-4">
                 <button
                   onClick={loadSettings}
