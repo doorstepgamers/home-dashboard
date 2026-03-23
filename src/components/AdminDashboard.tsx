@@ -23,6 +23,23 @@ export function AdminDashboard() {
 
   useEffect(() => {
     loadSettings();
+
+    if (!supabase) return;
+
+    const subscription = supabase
+      .channel('app_settings_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'app_settings' },
+        () => {
+          loadSettings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadSettings = async () => {
