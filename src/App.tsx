@@ -85,16 +85,16 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
-      <header className="bg-white/5 backdrop-blur-md shadow-sm border-b border-white/10">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
+      <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Home size={28} className="text-blue-400" />
-              <h1 className="text-2xl font-bold text-white">Home Dashboard</h1>
+              <Home size={28} className="text-blue-600" />
+              <h1 className="text-2xl font-bold text-gray-900">Home Dashboard</h1>
             </div>
             <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-300">{currentTime}</div>
+              <div className="text-sm text-gray-600">{currentTime}</div>
               <a
                 href="/admin"
                 className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
@@ -116,9 +116,9 @@ function App() {
         </div>
       </main>
 
-      <footer className="bg-white/5 backdrop-blur-md border-t border-white/10 py-3">
+      <footer className="bg-white border-t border-gray-200 py-3">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-xs text-gray-300">
+          <div className="text-xs text-gray-600">
             <span className="font-medium">Last Device Heartbeat:</span> {formatTimestamp(lastSeenTime)}
           </div>
         </div>

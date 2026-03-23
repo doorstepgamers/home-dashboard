@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Zap, Droplet, Thermometer, AlertCircle } from 'lucide-react';
+import { Zap, Droplet, Thermometer, AlertCircle, ChevronDown } from 'lucide-react';
 import Card from './Card';
 import { supabase } from '../lib/supabase';
 
@@ -22,10 +22,38 @@ interface VictronData {
   error_code: string | null;
 }
 
+interface VictronDevice {
+  id: string;
+  device_name: string;
+  device_type: 'mppt' | 'shunt';
+  connection_status: string;
+}
+
 export default function VictronDataCard() {
   const [victronData, setVictronData] = useState<VictronData | null>(null);
+  const [devices, setDevices] = useState<VictronDevice[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!supabase) return;
+
+    const loadDevices = async () => {
+      try {
+        const response = await fetch('/api/victron-devices');
+        const data = await response.json();
+        setDevices(Array.isArray(data) ? data : []);
+        if (Array.isArray(data) && data.length > 0) {
+          setSelectedDeviceId(data[0].id);
+        }
+      } catch (err) {
+        console.error('Error loading devices:', err);
+      }
+    };
+
+    loadDevices();
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;
@@ -33,12 +61,17 @@ export default function VictronDataCard() {
     const fetchVictronData = async () => {
       try {
         setLoading(true);
-        const { data, error: fetchError } = await supabase
+        let query = supabase
           .from('victron_data')
           .select('*')
           .order('timestamp', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
+
+        if (selectedDeviceId) {
+          query = query.eq('device_id', selectedDeviceId);
+        }
+
+        const { data, error: fetchError } = await query.maybeSingle();
 
         if (fetchError) throw fetchError;
 
@@ -78,7 +111,7 @@ export default function VictronDataCard() {
       clearInterval(interval);
       channel.unsubscribe();
     };
-  }, []);
+  }, [selectedDeviceId]);
 
   const formatValue = (value: number | null, unit: string, decimals = 2) => {
     if (value === null) return 'N/A';
@@ -107,14 +140,33 @@ export default function VictronDataCard() {
   }
 
   const isMPPT = victronData.device_type === 'mppt';
+  const selectedDevice = devices.find(d => d.id === selectedDeviceId);
 
   return (
     <Card title="Victron Energy" icon={<Zap size={24} className="text-yellow-600" />}>
       <div className="space-y-4">
         <div className="flex justify-between items-center pb-3 border-b border-gray-200">
-          <span className="text-sm font-medium text-gray-600">
-            {victronData.device_type === 'mppt' ? 'MPPT Controller' : 'Battery Shunt'}
-          </span>
+          <div className="flex items-center gap-2">
+            {devices.length > 1 && (
+              <div className="relative">
+                <select
+                  value={selectedDeviceId || ''}
+                  onChange={(e) => setSelectedDeviceId(e.target.value)}
+                  className="appearance-none bg-white border border-gray-300 rounded px-3 py-1 text-sm font-medium text-gray-700 cursor-pointer pr-8 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                >
+                  {devices.map(device => (
+                    <option key={device.id} value={device.id}>
+                      {device.device_name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-600 pointer-events-none" />
+              </div>
+            )}
+            <span className="text-sm font-medium text-gray-600">
+              {victronData.device_type === 'mppt' ? 'MPPT Controller' : 'Battery Shunt'}
+            </span>
+          </div>
           <span className="text-xs text-gray-500">{formatTimestamp(victronData.timestamp)}</span>
         </div>
 

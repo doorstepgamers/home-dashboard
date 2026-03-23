@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Settings, Save, X, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import VictronDeviceManager from './VictronDeviceManager';
 
 interface Setting {
   id: string;
@@ -128,16 +129,16 @@ export function AdminDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <Settings className="w-8 h-8 text-blue-400" />
-            <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
+            <Settings className="w-8 h-8 text-blue-600" />
+            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           </div>
           <a
             href="/"
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors"
           >
             <X className="w-4 h-4" />
             Back to Dashboard
@@ -147,8 +148,8 @@ export function AdminDashboard() {
         {message && (
           <div className={`mb-6 p-4 rounded-lg ${
             message.includes('success')
-              ? 'bg-green-500/20 text-green-300 border border-green-500/50'
-              : 'bg-red-500/20 text-red-300 border border-red-500/50'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-red-50 text-red-700 border border-red-200'
           }`}>
             {message}
           </div>
@@ -156,19 +157,21 @@ export function AdminDashboard() {
 
         {loading ? (
           <div className="glass-card">
-            <div className="text-center text-slate-400">Loading settings...</div>
+            <div className="text-center text-gray-500">Loading settings...</div>
           </div>
         ) : (
           <div className="space-y-6">
+            <VictronDeviceManager />
+
             {Object.entries(groupedSettings).map(([category, categorySettings]) => (
               <div key={category} className="glass-card">
-                <h2 className="text-xl font-semibold text-white mb-4 capitalize">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4 capitalize">
                   {category} Settings
                 </h2>
                 <div className="space-y-4">
                   {categorySettings.map(setting => (
                     <div key={setting.id}>
-                      <label className="block text-sm font-medium text-slate-300 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         {setting.key.split('_').map(word =>
                           word.charAt(0).toUpperCase() + word.slice(1)
                         ).join(' ')}
@@ -177,10 +180,10 @@ export function AdminDashboard() {
                         type={setting.key.includes('key') ? 'password' : 'text'}
                         value={editedValues[setting.key] || ''}
                         onChange={(e) => handleChange(setting.key, e.target.value)}
-                        className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder={setting.description}
                       />
-                      <p className="mt-1 text-xs text-slate-400">{setting.description}</p>
+                      <p className="mt-1 text-xs text-gray-600">{setting.description}</p>
                     </div>
                   ))}
                 </div>
@@ -191,7 +194,7 @@ export function AdminDashboard() {
               <button
                 onClick={handleUpdate}
                 disabled={updating}
-                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Download className="w-4 h-4" />
                 {updating ? 'Updating...' : 'Update from GitHub'}
@@ -200,14 +203,14 @@ export function AdminDashboard() {
                 <button
                   onClick={loadSettings}
                   disabled={saving}
-                  className="px-6 py-3 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-3 bg-gray-300 text-gray-900 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Reset Changes
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving || !hasChanges}
-                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="w-4 h-4" />
                   {saving ? 'Saving...' : 'Save Settings'}

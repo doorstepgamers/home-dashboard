@@ -11,6 +11,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { getSystemStats } from './system-stats.js';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { BluetoothManager } from './bluetooth-manager.js';
 import type { VictronData } from './victron-reader.js';
 
 dotenv.config();
@@ -28,9 +29,11 @@ let isUpdating = false;
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 let supabase: SupabaseClient | null = null;
+let bluetoothManager: BluetoothManager | null = null;
 
 if (supabaseUrl && supabaseKey) {
   supabase = createClient(supabaseUrl, supabaseKey);
+  bluetoothManager = new BluetoothManager(supabase);
 }
 
 app.use(cors());
@@ -237,6 +240,176 @@ app.get('/api/victron-data/latest', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching victron data:', error);
     res.status(500).json({ error: 'Failed to fetch victron data' });
+  }
+});
+
+app.get('/api/victron-devices', async (req: Request, res: Response) => {
+  if (!bluetoothManager) {
+    return res.status(500).json({ error: 'Bluetooth manager not initialized' });
+  }
+
+  try {
+    const devices = await bluetoothManager.getAllDevices();
+    res.json(devices);
+  } catch (error) {
+    console.error('Error fetching Victron devices:', error);
+    res.status(500).json({ error: 'Failed to fetch Victron devices' });
+  }
+});
+
+app.post('/api/victron-devices', async (req: Request, res: Response) => {
+  if (!bluetoothManager) {
+    return res.status(500).json({ error: 'Bluetooth manager not initialized' });
+  }
+
+  try {
+    const { device_name, mac_address, device_type, pin_code } = req.body;
+
+    if (!device_name || !mac_address || !device_type || !pin_code) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    if (!['mppt', 'shunt'].includes(device_type)) {
+      return res.status(400).json({ error: 'Invalid device type' });
+    }
+
+    const device = await bluetoothManager.registerDevice(
+      device_name,
+      mac_address,
+      device_type,
+      pin_code
+    );
+
+    res.status(201).json(device);
+  } catch (error) {
+    console.error('Error registering device:', error);
+    res.status(500).json({ error: 'Failed to register device' });
+  }
+});
+
+app.put('/api/victron-devices/:id', async (req: Request, res: Response) => {
+  if (!supabase) {
+    return res.status(500).json({ error: 'Supabase not configured' });
+  }
+
+  try {
+    const { id } = req.params;
+    const { device_name, is_active } = req.body;
+
+    const updateData: any = { updated_at: new Date().toISOString() };
+    if (device_name !== undefined) updateData.device_name = device_name;
+    if (is_active !== undefined) updateData.is_active = is_active;
+
+    const { data, error } = await supabase
+      .from('victron_devices')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    console.error('Error updating device:', error);
+    res.status(500).json({ error: 'Failed to update device' });
+  }
+});
+
+app.delete('/api/victron-devices/:id', async (req: Request, res: Response) => {
+  if (!bluetoothManager) {
+    return res.status(500).json({ error: 'Bluetooth manager not initialized' });
+  }
+
+  try {
+    const { id } = req.params;
+    await bluetoothManager.removeDevice(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error removing device:', error);
+    res.status(500).json({ error: 'Failed to remove device' });
+  }
+});
+
+app.post('/api/victron-devices/discover/scan', async (req: Request, res: Response) => {
+  if (!bluetoothManager) {
+    return res.status(500).json({ error: 'Bluetooth manager not initialized' });
+  }
+
+  try {
+    const devices = await bluetoothManager.discoverDevices();
+    res.json(devices);
+  } catch (error) {
+    console.error('Error discovering devices:', error);
+    res.status(500).json({ error: 'Failed to discover devices' });
+  }
+});
+
+app.post('/api/victron-devices/:id/test-connection', async (req: Request, res: Response) => {
+  if (!bluetoothManager) {
+    return res.status(500).json({ error: 'Bluetooth manager not initialized' });
+  }
+
+  try {
+    const { id } = req.params;
+    const { pin_code } = req.body;
+
+    if (!pin_code) {
+      return res.status(400).json({ error: 'Pin code required' });
+    }
+
+    const success = await bluetoothManager.testConnection(id, pin_code);
+    res.json({ success });
+  } catch (error) {
+    console.error('Error testing connection:', error);
+    res.status(500).json({ error: 'Failed to test connection' });
+  }
+});
+
+app.get('/api/victron-devices/:id/status', async (req: Request, res: Response) => {
+  if (!supabase) {
+    return res.status(500).json({ error: 'Supabase not configured' });
+  }
+
+  try {
+    const { id } = req.params;
+
+    const { data: device, error } = await supabase
+      .from('victron_devices')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+
+    res.json({
+      id: device.id,
+      device_name: device.device_name,
+      connection_status: device.connection_status,
+      signal_strength: device.signal_strength,
+      last_sync: device.last_sync,
+      sync_errors_count: device.sync_errors_count,
+      last_error: device.last_error
+    });
+  } catch (error) {
+    console.error('Error fetching device status:', error);
+    res.status(500).json({ error: 'Failed to fetch device status' });
+  }
+});
+
+app.get('/api/victron-devices/discovery/logs', async (req: Request, res: Response) => {
+  if (!bluetoothManager) {
+    return res.status(500).json({ error: 'Bluetooth manager not initialized' });
+  }
+
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+    const logs = await bluetoothManager.getDiscoveryLogs(limit);
+    res.json(logs);
+  } catch (error) {
+    console.error('Error fetching discovery logs:', error);
+    res.status(500).json({ error: 'Failed to fetch discovery logs' });
   }
 });
 

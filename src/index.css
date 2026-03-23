@@ -4,6 +4,10 @@
 
 @layer components {
   .glass-card {
-    @apply bg-white/10 backdrop-blur-md border border-white/20 shadow-lg;
+    @apply bg-white border border-gray-200 shadow-lg rounded-xl;
+  }
+
+  .card-shadow {
+    @apply shadow-md hover:shadow-lg transition-shadow duration-200;
   }
 }
