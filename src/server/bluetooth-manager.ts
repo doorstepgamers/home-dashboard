@@ -257,10 +257,20 @@ export class BluetoothManager {
 
             console.log(`Found device: ${name} (${peripheral.address}) - RSSI: ${rssi}dBm`);
 
-            const isVictronDevice = name && (name.includes('Victron') || name.includes('MPPT') || name.includes('Shunt') || name.includes('Batt'));
+            const isVictronDevice = name && (
+              name.includes('Victron') ||
+              name.includes('MPPT') ||
+              name.includes('Shunt') ||
+              name.includes('Batt') ||
+              name.includes('Smart') ||
+              name.includes('BMV') ||
+              name.includes('Phoenix') ||
+              name.includes('BlueSolar') ||
+              name.includes('VE.Direct')
+            );
 
             if (isVictronDevice) {
-              const deviceType = name.includes('Shunt') || name.includes('Batt') ? 'shunt' : 'mppt';
+              const deviceType = (name.includes('Shunt') || name.includes('Batt') || name.includes('BMV')) ? 'shunt' : 'mppt';
               const signalStrength = Math.max(-100, Math.min(-30, rssi));
 
               const device: DiscoveredDevice = {

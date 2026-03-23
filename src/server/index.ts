@@ -216,6 +216,8 @@ app.post('/api/victron-data', async (req: Request, res: Response) => {
         temperature: data.temperature ?? null,
         state_of_operation: data.state_of_operation ?? null,
         error_code: data.error_code ?? null,
+        state_of_charge: data.state_of_charge ?? null,
+        time_to_go: data.time_to_go ?? null,
         raw_data: data.raw_data,
       });
 
@@ -841,6 +843,8 @@ async function initializeVictronSync() {
               temperature: data.temperature ?? null,
               state_of_operation: data.state_of_operation ?? null,
               error_code: data.error_code ?? null,
+              state_of_charge: data.state_of_charge ?? null,
+              time_to_go: data.time_to_go ?? null,
               raw_data: data.raw_data,
             });
 

@@ -3,23 +3,7 @@ const VE_DIRECT_BAUD = 19200;
 let port = null;
 let parser = null;
 let isConnected = false;
-const fieldMappings = {
-    'V': 'battery_voltage',
-    'I': 'battery_current',
-    'P': 'battery_power',
-    'VPV': 'pv_voltage',
-    'IPV': 'pv_current',
-    'PPV': 'pv_power',
-    'IL': 'load_current',
-    'H19': 'yield_today',
-    'H20': 'yield_total',
-    'MPPT': 'efficiency',
-    'T': 'temperature',
-    'CS': 'state_of_operation',
-    'ERR': 'error_code',
-    'SOC': 'state_of_charge',
-    'TTG': 'time_to_go',
-};
+const SHUNT_PIDS = ['0xA389', '0xA381', '0xA382', '0xA383', '0xA384', '0xA385', '0xA386', '0xA387', '0xA388'];
 export async function initializeVictronReader() {
     try {
         const { SerialPort } = await import('serialport');
@@ -35,7 +19,7 @@ export async function initializeVictronReader() {
             isConnected = false;
         });
         parser.on('data', (line) => {
-            console.log('Victron data received:', line);
+            console.log('Victron raw:', line.trim());
         });
         await new Promise((resolve, reject) => {
             port.open((err) => {
@@ -62,35 +46,20 @@ export async function readVictronData() {
     }
     return new Promise((resolve) => {
         const dataBuffer = {};
-        let deviceType = 'mppt';
-        let blockComplete = false;
+        let linesReceived = 0;
+        let checkSumSeen = false;
         const handleLine = (line) => {
             const trimmed = line.trim();
-            if (trimmed === '' || trimmed === 'Checksum') {
-                if (blockComplete && Object.keys(dataBuffer).length > 0) {
-                    parser.removeListener('data', handleLine);
-                    const victronData = {
-                        device_type: deviceType,
-                        raw_data: dataBuffer,
-                    };
-                    for (const [field, value] of Object.entries(dataBuffer)) {
-                        const key = fieldMappings[field];
-                        if (key) {
-                            const numValue = parseFloat(value);
-                            if (!isNaN(numValue)) {
-                                victronData[key] = numValue;
-                            }
-                            else if (key === 'state_of_operation' || key === 'error_code') {
-                                victronData[key] = value;
-                            }
-                        }
-                        if (field === 'BMV' && value.includes('Shunt')) {
-                            deviceType = 'shunt';
-                        }
-                    }
-                    resolve(victronData);
-                }
-                blockComplete = true;
+            linesReceived++;
+            if (trimmed.startsWith('Checksum')) {
+                checkSumSeen = true;
+                return;
+            }
+            if (checkSumSeen && Object.keys(dataBuffer).length > 3) {
+                parser.removeListener('data', handleLine);
+                const victronData = parseVictronBuffer(dataBuffer);
+                console.log('Victron parsed data:', JSON.stringify(victronData, null, 2));
+                resolve(victronData);
                 return;
             }
             const tabIndex = trimmed.indexOf('\t');
@@ -98,15 +67,76 @@ export async function readVictronData() {
                 const field = trimmed.substring(0, tabIndex).trim();
                 const value = trimmed.substring(tabIndex + 1).trim();
                 dataBuffer[field] = value;
-                blockComplete = false;
             }
         };
         parser.on('data', handleLine);
         setTimeout(() => {
             parser.removeListener('data', handleLine);
-            resolve(null);
+            if (Object.keys(dataBuffer).length > 0) {
+                const victronData = parseVictronBuffer(dataBuffer);
+                console.log('Victron parsed (timeout):', JSON.stringify(victronData, null, 2));
+                resolve(victronData);
+            }
+            else {
+                resolve(null);
+            }
         }, 5000);
     });
+}
+function parseVictronBuffer(dataBuffer) {
+    const pid = dataBuffer['PID'] || '';
+    const isShunt = SHUNT_PIDS.includes(pid) ||
+        dataBuffer['SOC'] !== undefined ||
+        dataBuffer['TTG'] !== undefined ||
+        (dataBuffer['BMV'] !== undefined);
+    const deviceType = isShunt ? 'shunt' : 'mppt';
+    const victronData = {
+        device_type: deviceType,
+        raw_data: dataBuffer,
+    };
+    if (dataBuffer['V']) {
+        victronData.battery_voltage = parseFloat(dataBuffer['V']) / 1000;
+    }
+    if (dataBuffer['I']) {
+        victronData.battery_current = parseFloat(dataBuffer['I']) / 1000;
+    }
+    if (dataBuffer['P']) {
+        victronData.battery_power = parseFloat(dataBuffer['P']);
+    }
+    if (dataBuffer['VPV']) {
+        victronData.pv_voltage = parseFloat(dataBuffer['VPV']) / 1000;
+    }
+    if (dataBuffer['IPV']) {
+        victronData.pv_current = parseFloat(dataBuffer['IPV']) / 1000;
+    }
+    if (dataBuffer['PPV']) {
+        victronData.pv_power = parseFloat(dataBuffer['PPV']);
+    }
+    if (dataBuffer['IL']) {
+        victronData.load_current = parseFloat(dataBuffer['IL']) / 1000;
+    }
+    if (dataBuffer['H20']) {
+        victronData.yield_today = parseFloat(dataBuffer['H20']) / 100;
+    }
+    if (dataBuffer['H19']) {
+        victronData.yield_total = parseFloat(dataBuffer['H19']) / 100;
+    }
+    if (dataBuffer['T']) {
+        victronData.temperature = parseFloat(dataBuffer['T']);
+    }
+    if (dataBuffer['CS']) {
+        victronData.state_of_operation = dataBuffer['CS'];
+    }
+    if (dataBuffer['ERR']) {
+        victronData.error_code = dataBuffer['ERR'];
+    }
+    if (dataBuffer['SOC']) {
+        victronData.state_of_charge = parseFloat(dataBuffer['SOC']) / 10;
+    }
+    if (dataBuffer['TTG']) {
+        victronData.time_to_go = parseFloat(dataBuffer['TTG']);
+    }
+    return victronData;
 }
 export function closeVictronReader() {
     if (port && port.isOpen) {
