@@ -3,6 +3,9 @@ import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { networkInterfaces } from 'os';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { createHmac } from 'crypto';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -11,9 +14,12 @@ import { createClient } from '@supabase/supabase-js';
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const execAsync = promisify(exec);
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const DIST_DIR = join(__dirname, '..', '..', 'dist');
+const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET || 'webhook-secret';
+let isUpdating = false;
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 let supabase = null;
@@ -21,7 +27,28 @@ if (supabaseUrl && supabaseKey) {
     supabase = createClient(supabaseUrl, supabaseKey);
 }
 app.use(cors());
-app.use(express.json());
+app.use((req, res, next) => {
+    if (req.path === '/api/webhook/github') {
+        let rawBody = '';
+        req.on('data', chunk => {
+            rawBody += chunk.toString();
+        });
+        req.on('end', () => {
+            req.rawBody = rawBody;
+            try {
+                req.body = JSON.parse(rawBody);
+            }
+            catch {
+                req.body = {};
+            }
+            next();
+        });
+    }
+    else {
+        express.json()(req, res, next);
+    }
+});
+app.use(express.static(DIST_DIR));
 app.get('/api/system-stats', async (req, res) => {
     try {
         const stats = await getSystemStats();
@@ -123,13 +150,62 @@ app.post('/api/update-tracker', async (req, res) => {
         res.status(500).json({ error: 'Failed to update tracker' });
     }
 });
-app.use(express.static(DIST_DIR));
+app.post('/api/webhook/github', async (req, res) => {
+    if (isUpdating) {
+        return res.status(202).json({ status: 'update already in progress' });
+    }
+    try {
+        const signature = req.headers['x-hub-signature-256'];
+        const rawBody = req.rawBody || '';
+        if (!signature || !validateGitHubSignature(rawBody, signature)) {
+            return res.status(401).json({ error: 'Invalid signature' });
+        }
+        isUpdating = true;
+        res.json({ status: 'update started' });
+        const dashboardDir = process.env.DASHBOARD_DIR || `${process.env.HOME || '/home/pi'}/home-dashboard`;
+        try {
+            console.log('GitHub webhook triggered - starting auto-update...');
+            await execAsync(`cd "${dashboardDir}" && git pull`, { maxBuffer: 10 * 1024 * 1024 });
+            console.log('Git pull completed');
+            await execAsync(`cd "${dashboardDir}" && npm install`, { maxBuffer: 10 * 1024 * 1024, timeout: 120000 });
+            console.log('npm install completed');
+            await execAsync(`cd "${dashboardDir}" && npm run build`, { maxBuffer: 10 * 1024 * 1024, timeout: 120000 });
+            console.log('Build completed');
+            await execAsync('pm2 restart home-dashboard home-dashboard-heartbeat', { timeout: 30000 });
+            console.log('PM2 processes restarted successfully');
+            if (supabase) {
+                const deviceIdFile = `${dashboardDir}/raspberry-pi/.device-id`;
+                try {
+                    const deviceId = readFileSync(deviceIdFile, 'utf8').trim();
+                    await supabase
+                        .from('device_status')
+                        .update({ last_update_time: new Date().toISOString() })
+                        .eq('id', deviceId);
+                }
+                catch {
+                    // Device ID file might not exist, that's okay
+                }
+            }
+        }
+        catch (error) {
+            console.error('Update failed:', error);
+        }
+        finally {
+            isUpdating = false;
+        }
+    }
+    catch (error) {
+        console.error('Webhook error:', error);
+        res.status(500).json({ error: 'Webhook processing failed' });
+    }
+});
 app.get('*', (req, res) => {
     const indexPath = join(DIST_DIR, 'index.html');
     res.setHeader('Content-Type', 'text/html');
     res.send(readFileSync(indexPath, 'utf8'));
 });
 const server = createServer(app);
+server.setOption?.('SO_REUSEADDR', 1);
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`========================================`);
     console.log(`  Raspberry Pi Dashboard Started`);
@@ -137,6 +213,15 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`Local:   http://localhost:${PORT}`);
     console.log(`Network: http://${getLocalIP()}:${PORT}`);
     console.log(`========================================`);
+});
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use. Retrying in 2 seconds...`);
+        setTimeout(() => {
+            server.close();
+            server.listen(PORT, '0.0.0.0');
+        }, 2000);
+    }
 });
 function getLocalIP() {
     const nets = networkInterfaces();
@@ -148,6 +233,12 @@ function getLocalIP() {
         }
     }
     return 'localhost';
+}
+function validateGitHubSignature(rawBody, signature) {
+    const hmac = createHmac('sha256', WEBHOOK_SECRET);
+    hmac.update(rawBody);
+    const expectedSignature = `sha256=${hmac.digest('hex')}`;
+    return signature === expectedSignature;
 }
 process.on('SIGTERM', () => {
     console.log('SIGTERM received, shutting down gracefully');

@@ -44,9 +44,44 @@ The installer automatically:
 - Installs all dependencies
 - Builds the dashboard
 - Sets up auto-start on boot
-- Configures Git auto-updates every 5 minutes
+- Configures instant Git auto-updates via GitHub webhooks
 
 Access at: `http://raspberrypi.local:3000`
+
+## Auto-Update via GitHub Webhooks
+
+No more manual pulling! When you push to GitHub, your Pi updates automatically within seconds.
+
+### Setup (One-time)
+
+1. Generate a webhook secret:
+   ```bash
+   openssl rand -hex 32
+   ```
+
+2. Add to your `.env` on the Pi:
+   ```
+   GITHUB_WEBHOOK_SECRET=your_secret_from_step_1
+   ```
+
+3. Restart the dashboard:
+   ```bash
+   pm2 restart home-dashboard
+   ```
+
+4. Go to your GitHub repo → Settings → Webhooks → Add webhook
+   - **Payload URL**: `http://your-pi-ip:3000/api/webhook/github`
+   - **Content type**: `application/json`
+   - **Secret**: Enter the secret from step 1
+   - **Events**: Select "Push events"
+   - Click **Add webhook**
+
+5. Test by making a commit and pushing:
+   ```bash
+   git push
+   ```
+
+Your Pi will automatically pull, install dependencies, build, and restart within seconds!
 
 ## Building
 
