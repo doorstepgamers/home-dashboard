@@ -20,7 +20,7 @@ const execAsync = promisify(exec);
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
-const DIST_DIR = join(__dirname, '..', '..', 'dist');
+const DIST_DIR = join(__dirname, '..', 'dist');
 const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET || 'webhook-secret';
 let isUpdating = false;
 
