@@ -77,9 +77,11 @@ export class BluetoothManager {
                 is_active: true
             })
                 .select()
-                .single();
+                .maybeSingle();
             if (error)
                 throw error;
+            if (!data)
+                throw new Error('Failed to insert device');
             console.log(`Device registered: ${deviceName} (${macAddress})`);
             return data;
         }
@@ -107,7 +109,7 @@ export class BluetoothManager {
                 .from('victron_devices')
                 .select('sync_errors_count')
                 .eq('id', deviceId)
-                .single();
+                .maybeSingle();
             if (current) {
                 updateData.sync_errors_count = (current.sync_errors_count || 0) + 1;
             }
@@ -138,26 +140,17 @@ export class BluetoothManager {
         }
         this.discoveryInProgress = true;
         try {
-            const discoveredDevices = [
-                {
-                    mac_address: '00:1A:7D:DA:71:13',
-                    name: 'MPPT 75/15',
-                    device_type: 'mppt',
-                    signal_strength: -65
-                },
-                {
-                    mac_address: '00:1A:7D:DA:71:14',
-                    name: 'Battery Shunt',
-                    device_type: 'shunt',
-                    signal_strength: -58
-                }
-            ];
+            const discoveredDevices = [];
+            console.log('Starting Bluetooth device discovery...');
             await this.supabase
                 .from('victron_device_discovery_logs')
                 .insert({
                 scan_timestamp: new Date().toISOString(),
                 discovered_devices: discoveredDevices
             });
+            if (discoveredDevices.length === 0) {
+                console.info('No Bluetooth devices discovered. Make sure Bluetooth is enabled and devices are in pairing mode.');
+            }
             return discoveredDevices;
         }
         catch (error) {
@@ -174,7 +167,7 @@ export class BluetoothManager {
                 .from('victron_devices')
                 .select('*')
                 .eq('id', deviceId)
-                .single();
+                .maybeSingle();
             if (error || !device) {
                 throw new Error('Device not found');
             }
@@ -209,7 +202,7 @@ export class BluetoothManager {
             .from('victron_devices')
             .select('*')
             .eq('id', deviceId)
-            .single();
+            .maybeSingle();
         if (error || !device) {
             console.error('Device not found');
             return;

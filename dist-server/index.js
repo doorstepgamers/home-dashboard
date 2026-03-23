@@ -255,8 +255,8 @@ app.post('/api/victron-devices', async (req, res) => {
         res.status(201).json(device);
     }
     catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Error registering device:', errorMessage);
+        const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+        console.error('Error registering device:', error);
         res.status(500).json({ error: `Failed to register device: ${errorMessage}` });
     }
 });
