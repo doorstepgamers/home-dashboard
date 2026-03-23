@@ -21,7 +21,7 @@ if (supabaseUrl && supabaseKey) {
 app.use(cors());
 app.use(express.json());
 
-app.get('/api/system-stats', async (req: Request, res: Response) => {
+app.get('/system-stats', async (req: Request, res: Response) => {
   try {
     const stats = await getSystemStats();
     res.json(stats);
@@ -31,11 +31,11 @@ app.get('/api/system-stats', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/health', (req: Request, res: Response) => {
+app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.get('/api/settings/:key', async (req: Request, res: Response) => {
+app.get('/settings/:key', async (req: Request, res: Response) => {
   if (!supabase) {
     return res.status(500).json({ error: 'Supabase not configured' });
   }
@@ -57,7 +57,7 @@ app.get('/api/settings/:key', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/heartbeat', async (req: Request, res: Response) => {
+app.post('/heartbeat', async (req: Request, res: Response) => {
   if (!supabase) {
     return res.status(500).json({ error: 'Supabase not configured' });
   }
@@ -104,7 +104,7 @@ app.post('/api/heartbeat', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/update-tracker', async (req: Request, res: Response) => {
+app.post('/update-tracker', async (req: Request, res: Response) => {
   if (!supabase) {
     return res.status(500).json({ error: 'Supabase not configured' });
   }
@@ -132,11 +132,5 @@ app.post('/api/update-tracker', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to update tracker' });
   }
 });
-
-if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`System stats API running on port ${PORT}`);
-  });
-}
 
 export default app;

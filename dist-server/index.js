@@ -14,7 +14,7 @@ if (supabaseUrl && supabaseKey) {
 }
 app.use(cors());
 app.use(express.json());
-app.get('/api/system-stats', async (req, res) => {
+app.get('/system-stats', async (req, res) => {
     try {
         const stats = await getSystemStats();
         res.json(stats);
@@ -24,10 +24,10 @@ app.get('/api/system-stats', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch system stats' });
     }
 });
-app.get('/api/health', (req, res) => {
+app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
-app.get('/api/settings/:key', async (req, res) => {
+app.get('/settings/:key', async (req, res) => {
     if (!supabase) {
         return res.status(500).json({ error: 'Supabase not configured' });
     }
@@ -47,7 +47,7 @@ app.get('/api/settings/:key', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch setting' });
     }
 });
-app.post('/api/heartbeat', async (req, res) => {
+app.post('/heartbeat', async (req, res) => {
     if (!supabase) {
         return res.status(500).json({ error: 'Supabase not configured' });
     }
@@ -91,7 +91,7 @@ app.post('/api/heartbeat', async (req, res) => {
         res.status(500).json({ error: 'Failed to update heartbeat' });
     }
 });
-app.post('/api/update-tracker', async (req, res) => {
+app.post('/update-tracker', async (req, res) => {
     if (!supabase) {
         return res.status(500).json({ error: 'Supabase not configured' });
     }
@@ -115,10 +115,5 @@ app.post('/api/update-tracker', async (req, res) => {
         res.status(500).json({ error: 'Failed to update tracker' });
     }
 });
-if (process.env.NODE_ENV !== 'test') {
-    app.listen(PORT, () => {
-        console.log(`System stats API running on port ${PORT}`);
-    });
-}
 export default app;
 //# sourceMappingURL=index.js.map
