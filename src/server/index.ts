@@ -1,7 +1,11 @@
 import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
 import { getSystemStats } from './system-stats.js';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types/database.js';
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -11,17 +15,11 @@ const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 let supabase: any = null;
 
 if (supabaseUrl && supabaseKey) {
-  supabase = createClient(supabaseUrl, supabaseKey);
+  supabase = createClient<Database>(supabaseUrl, supabaseKey);
 }
 
+app.use(cors());
 app.use(express.json());
-
-app.use((req: Request, res: Response, next: NextFunction) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  next();
-});
 
 app.get('/api/system-stats', async (req: Request, res: Response) => {
   try {
@@ -81,6 +79,35 @@ app.post('/api/heartbeat', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error updating heartbeat:', error);
     res.status(500).json({ error: 'Failed to update heartbeat' });
+  }
+});
+
+app.post('/api/update-tracker', async (req: Request, res: Response) => {
+  if (!supabase) {
+    return res.status(500).json({ error: 'Supabase not configured' });
+  }
+
+  try {
+    const { device_id, type } = req.body;
+
+    if (!device_id || !type) {
+      return res.status(400).json({ error: 'device_id and type are required' });
+    }
+
+    const updateField = type === 'check' ? 'last_check_time' : 'last_update_time';
+    const timestamp = new Date().toISOString();
+
+    const { error } = await supabase
+      .from('device_status')
+      .update({ [updateField]: timestamp })
+      .eq('id', device_id);
+
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating tracker:', error);
+    res.status(500).json({ error: 'Failed to update tracker' });
   }
 });
 

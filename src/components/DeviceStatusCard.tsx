@@ -22,6 +22,8 @@ interface DeviceStatus {
     hostname?: string;
   };
   ip_address?: string;
+  last_check_time?: string;
+  last_update_time?: string;
 }
 
 export default function DeviceStatusCard() {
