@@ -13,6 +13,8 @@ export interface VictronData {
   temperature?: number;
   state_of_operation?: string;
   error_code?: string;
+  state_of_charge?: number;
+  time_to_go?: number;
   raw_data: Record<string, string>;
 }
 
@@ -37,6 +39,8 @@ const fieldMappings: Record<string, keyof VictronData> = {
   'T': 'temperature',
   'CS': 'state_of_operation',
   'ERR': 'error_code',
+  'SOC': 'state_of_charge',
+  'TTG': 'time_to_go',
 };
 
 export async function initializeVictronReader(): Promise<void> {
@@ -92,7 +96,7 @@ export async function readVictronData(): Promise<VictronData | null> {
     const handleLine = (line: string) => {
       const trimmed = line.trim();
 
-      if (trimmed === '') {
+      if (trimmed === '' || trimmed === 'Checksum') {
         if (blockComplete && Object.keys(dataBuffer).length > 0) {
           parser!.removeListener('data', handleLine);
 
@@ -112,9 +116,7 @@ export async function readVictronData(): Promise<VictronData | null> {
               }
             }
 
-            if (field === 'PRODUCT' && value.includes('MPPT')) {
-              deviceType = 'mppt';
-            } else if (field === 'PRODUCT' && value.includes('Shunt')) {
+            if (field === 'BMV' && value.includes('Shunt')) {
               deviceType = 'shunt';
             }
           }
@@ -125,10 +127,10 @@ export async function readVictronData(): Promise<VictronData | null> {
         return;
       }
 
-      const colonIndex = trimmed.indexOf('\t');
-      if (colonIndex > -1) {
-        const field = trimmed.substring(0, colonIndex);
-        const value = trimmed.substring(colonIndex + 1);
+      const tabIndex = trimmed.indexOf('\t');
+      if (tabIndex > -1) {
+        const field = trimmed.substring(0, tabIndex).trim();
+        const value = trimmed.substring(tabIndex + 1).trim();
         dataBuffer[field] = value;
         blockComplete = false;
       }

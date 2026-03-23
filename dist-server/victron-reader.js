@@ -17,6 +17,8 @@ const fieldMappings = {
     'T': 'temperature',
     'CS': 'state_of_operation',
     'ERR': 'error_code',
+    'SOC': 'state_of_charge',
+    'TTG': 'time_to_go',
 };
 export async function initializeVictronReader() {
     try {
@@ -64,7 +66,7 @@ export async function readVictronData() {
         let blockComplete = false;
         const handleLine = (line) => {
             const trimmed = line.trim();
-            if (trimmed === '') {
+            if (trimmed === '' || trimmed === 'Checksum') {
                 if (blockComplete && Object.keys(dataBuffer).length > 0) {
                     parser.removeListener('data', handleLine);
                     const victronData = {
@@ -82,10 +84,7 @@ export async function readVictronData() {
                                 victronData[key] = value;
                             }
                         }
-                        if (field === 'PRODUCT' && value.includes('MPPT')) {
-                            deviceType = 'mppt';
-                        }
-                        else if (field === 'PRODUCT' && value.includes('Shunt')) {
+                        if (field === 'BMV' && value.includes('Shunt')) {
                             deviceType = 'shunt';
                         }
                     }
@@ -94,10 +93,10 @@ export async function readVictronData() {
                 blockComplete = true;
                 return;
             }
-            const colonIndex = trimmed.indexOf('\t');
-            if (colonIndex > -1) {
-                const field = trimmed.substring(0, colonIndex);
-                const value = trimmed.substring(colonIndex + 1);
+            const tabIndex = trimmed.indexOf('\t');
+            if (tabIndex > -1) {
+                const field = trimmed.substring(0, tabIndex).trim();
+                const value = trimmed.substring(tabIndex + 1).trim();
                 dataBuffer[field] = value;
                 blockComplete = false;
             }

@@ -130,7 +130,7 @@ async function readVictronData() {
     const handleLine = (line) => {
       const trimmed = line.trim();
 
-      if (trimmed === '') {
+      if (trimmed === '' || trimmed === 'Checksum') {
         if (blockComplete && Object.keys(dataBuffer).length > 0) {
           parser.removeListener('data', handleLine);
 
@@ -150,9 +150,7 @@ async function readVictronData() {
               }
             }
 
-            if (field === 'PRODUCT' && value.includes('MPPT')) {
-              deviceType = 'mppt';
-            } else if (field === 'PRODUCT' && value.includes('Shunt')) {
+            if (field === 'BMV' && value.includes('Shunt')) {
               deviceType = 'shunt';
             }
           }
@@ -165,8 +163,8 @@ async function readVictronData() {
 
       const tabIndex = trimmed.indexOf('\t');
       if (tabIndex > -1) {
-        const field = trimmed.substring(0, tabIndex);
-        const value = trimmed.substring(tabIndex + 1);
+        const field = trimmed.substring(0, tabIndex).trim();
+        const value = trimmed.substring(tabIndex + 1).trim();
         dataBuffer[field] = value;
         blockComplete = false;
       }

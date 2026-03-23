@@ -13,6 +13,8 @@ export interface VictronData {
     temperature?: number;
     state_of_operation?: string;
     error_code?: string;
+    state_of_charge?: number;
+    time_to_go?: number;
     raw_data: Record<string, string>;
 }
 export declare function initializeVictronReader(): Promise<void>;
