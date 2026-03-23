@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Settings, Save, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import Card from './Card';
 
 interface Setting {
   id: string;
@@ -23,6 +22,12 @@ export function AdminDashboard() {
   }, []);
 
   const loadSettings = async () => {
+    if (!supabase) {
+      setMessage('Supabase not configured');
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('app_settings')
@@ -46,6 +51,7 @@ export function AdminDashboard() {
   };
 
   const handleSave = async () => {
+    if (!supabase) return;
     setSaving(true);
     setMessage('');
 

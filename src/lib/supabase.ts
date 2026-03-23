@@ -1,15 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase: SupabaseClient | null =
+  supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : null;
 
 export async function getSetting(key: string): Promise<string> {
+  if (!supabase) return '';
+
   const { data, error } = await supabase
     .from('app_settings')
     .select('value')
@@ -25,6 +26,8 @@ export async function getSetting(key: string): Promise<string> {
 }
 
 export async function getSettings(keys: string[]): Promise<Record<string, string>> {
+  if (!supabase) return {};
+
   const { data, error } = await supabase
     .from('app_settings')
     .select('key, value')

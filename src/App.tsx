@@ -1,42 +1,39 @@
 import { Home, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import WeatherCard from './components/WeatherCard';
 import SystemStatsCard from './components/SystemStatsCard';
 import DeviceStatusCard from './components/DeviceStatusCard';
 import { AdminDashboard } from './components/AdminDashboard';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-const supabase = supabaseUrl && supabaseKey
-  ? createClient(supabaseUrl, supabaseKey)
-  : null;
+import { supabase } from './lib/supabase';
 
 function App() {
   const [showAdmin, setShowAdmin] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() =>
+    new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  );
+  const [lastCheckTime, setLastCheckTime] = useState<string | null>(null);
+  const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
 
   useEffect(() => {
     const isAdmin = window.location.pathname === '/admin';
     setShowAdmin(isAdmin);
   }, []);
 
-  if (showAdmin) {
-    return <AdminDashboard />;
-  }
-  const currentTime = new Date().toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-  const [lastCheckTime, setLastCheckTime] = useState<string | null>(null);
-  const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(
+        new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+      );
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;
+    const client = supabase;
 
     const fetchUpdateTimes = async () => {
-      const { data } = await supabase
+      const { data } = await client
         .from('device_status')
         .select('last_check_time, last_update_time')
         .order('last_seen', { ascending: false })
@@ -52,7 +49,7 @@ function App() {
     fetchUpdateTimes();
     const interval = setInterval(fetchUpdateTimes, 5000);
 
-    const channel = supabase
+    const channel = client
       .channel('update_times_changes')
       .on(
         'postgres_changes',
@@ -83,6 +80,10 @@ function App() {
       second: '2-digit'
     });
   };
+
+  if (showAdmin) {
+    return <AdminDashboard />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col">

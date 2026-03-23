@@ -1,14 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Wifi, WifiOff, Activity } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
 import Card from './Card';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-const supabase = supabaseUrl && supabaseKey
-  ? createClient(supabaseUrl, supabaseKey)
-  : null;
+import { supabase } from '../lib/supabase';
 
 interface DeviceStatus {
   id: string;
@@ -35,9 +28,10 @@ export default function DeviceStatusCard() {
       setLoading(false);
       return;
     }
+    const client = supabase;
 
     const fetchDevices = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('device_status')
         .select('*')
         .order('last_seen', { ascending: false });
@@ -53,7 +47,7 @@ export default function DeviceStatusCard() {
     fetchDevices();
     const interval = setInterval(fetchDevices, 5000);
 
-    const channel = supabase
+    const channel = client
       .channel('device_status_changes')
       .on(
         'postgres_changes',

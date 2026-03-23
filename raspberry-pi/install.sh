@@ -73,11 +73,11 @@ echo ""
 echo "Step 5: Setting up environment variables..."
 if [ ! -f ".env" ]; then
     cat > .env << 'EOF'
-PORT=3001
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 VITE_WEATHER_API_KEY=
 VITE_WEATHER_LOCATION=London
+PORT=3000
 NODE_ENV=production
 EOF
     echo "Created .env file. You'll need to add your Supabase credentials."
